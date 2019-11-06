@@ -24,7 +24,11 @@ case class Validator[L, R, F[_]](path: Path, f: R => F[Result[Message[R, L], R]]
 
     def combine(
         v: Validator[L, R, F])(implicit F: Functor[F], S: Semigroupal[F]
-    ): Validator[L, R, F] = Validator(path, a => (this.f(a), v.f(a)).mapN(_.combine(_)))
+    ): Validator[L, R, F] = Validator(path, a => (this.f(a), v.f(a)).mapN(_ combine _))
+
+    def orElse(
+        v: Validator[L, R, F])(implicit F: Functor[F], S: Semigroupal[F]
+    ): Validator[L, R, F] = Validator(path, a => (f(a), v.f(a)).mapN(_ orElse _))
 
     def &&(
         v: Validator[L, R, F])(implicit F: Functor[F], S: Semigroupal[F]
@@ -32,7 +36,7 @@ case class Validator[L, R, F[_]](path: Path, f: R => F[Result[Message[R, L], R]]
 
     def ||(
         v: Validator[L, R, F])(implicit F: Functor[F], S: Semigroupal[F]
-    ): Validator[L, R, F] = Validator(path, a => (f(a), v.f(a)).mapN(_.orElse(_)))
+    ): Validator[L, R, F] = orElse(v)
 
     def combineR(
         f: R => F[Boolean], m1: Message[R, L], ms: Message[R, L]*)(
