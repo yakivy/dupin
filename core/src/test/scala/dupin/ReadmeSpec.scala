@@ -1,8 +1,6 @@
-package dupin.data
+package dupin
 
-import dupin.BaseMessage
-import dupin.BaseValidator
-import dupin.Validator
+import dupin.dsl._
 
 object ReadmeSpec {
     case class Login(value: String) extends AnyVal

@@ -5,60 +5,59 @@ import cats.Semigroupal
 import cats.instances.function._
 import cats.syntax.contravariantSemigroupal._
 import cats.syntax.functor._
-import dupin.Message
+import dupin.dsl.Message
 import dupin.core.Validator.PartiallyAppliedCombineP
 import dupin.core.Validator.PartiallyAppliedCombinePR
 import scala.language.experimental.macros
 
-
-case class Validator[A, B, C[_]](path: Path, f: A => C[Result[Message[A, B], A]]) {
-    def validate(a: A)(implicit F: Functor[C]): C[Result[B, A]] =
+case class Validator[L, R, F[_]](path: Path, f: R => F[Result[Message[R, L], R]]) {
+    def validate(a: R)(implicit F: Functor[F]): F[Result[L, R]] =
         F.map(f(a))(_.leftMap(_.apply(Context(path, a))))
 
     def messages(
-        m1: Message[A, B], ms: Message[A, B]*)(implicit F: Functor[C]
-    ): Validator[A, B, C] = Validator(path, f.map(F.map(_)(_.messages(m1, ms: _*))))
+        m1: Message[R, L], ms: Message[R, L]*)(implicit F: Functor[F]
+    ): Validator[L, R, F] = Validator(path, f.map(F.map(_)(_.messages(m1, ms: _*))))
 
-    def compose[D](ff: D => A)(implicit F: Functor[C]): Validator[D, B, C] = Validator(
+    def compose[RR](ff: RR => R)(implicit F: Functor[F]): Validator[L, RR, F] = Validator(
         path, a => F.map(f(ff(a)))(_.bimap(_.compose(_.map(path, ff)), _ => a))
     )
 
     def combine(
-        v: Validator[A, B, C])(implicit F: Functor[C], S: Semigroupal[C]
-    ): Validator[A, B, C] = Validator(path, a => (this.f(a), v.f(a)).mapN(_.combine(_)))
+        v: Validator[L, R, F])(implicit F: Functor[F], S: Semigroupal[F]
+    ): Validator[L, R, F] = Validator(path, a => (this.f(a), v.f(a)).mapN(_.combine(_)))
 
     def &&(
-        v: Validator[A, B, C])(implicit F: Functor[C], S: Semigroupal[C]
-    ): Validator[A, B, C] = combine(v)
+        v: Validator[L, R, F])(implicit F: Functor[F], S: Semigroupal[F]
+    ): Validator[L, R, F] = combine(v)
 
     def ||(
-        v: Validator[A, B, C])(implicit F: Functor[C], S: Semigroupal[C]
-    ): Validator[A, B, C] = Validator(path, a => (f(a), v.f(a)).mapN(_.orElse(_)))
+        v: Validator[L, R, F])(implicit F: Functor[F], S: Semigroupal[F]
+    ): Validator[L, R, F] = Validator(path, a => (f(a), v.f(a)).mapN(_.orElse(_)))
 
     def combineR(
-        f: A => C[Boolean], m1: Message[A, B], ms: Message[A, B]*)(
-        implicit F: Functor[C], S: Semigroupal[C]
-    ): Validator[A, B, C] = combine(Builder.apply.root(f, m1, ms: _*))
+        f: R => F[Boolean], m1: Message[R, L], ms: Message[R, L]*)(
+        implicit F: Functor[F], S: Semigroupal[F]
+    ): Validator[L, R, F] = combine(Builder.apply.root(f, m1, ms: _*))
 
-    def combineP[D](f: A => D): PartiallyAppliedCombineP[A, B, C, D] =
-        macro ValidatorMacro.combinePImpl[A, B, C, D]
+    def combineP[D](f: R => D): PartiallyAppliedCombineP[L, R, F, D] =
+        macro ValidatorMacro.combinePImpl[L, R, F, D]
 
-    def combinePR[D](f: A => D): PartiallyAppliedCombinePR[A, B, C, D] =
-        macro ValidatorMacro.combinePRImpl[A, B, C, D]
+    def combinePR[D](f: R => D): PartiallyAppliedCombinePR[L, R, F, D] =
+        macro ValidatorMacro.combinePRImpl[L, R, F, D]
 }
 
 object Validator {
-    case class PartiallyAppliedCombineP[A, B, C[_], D](iv: Validator[A, B, C], p: PathPart, f: A => D) {
+    case class PartiallyAppliedCombineP[L, R, F[_], RR](iv: Validator[L, R, F], p: PathPart, f: R => RR) {
         def apply(
-            v: Validator[D, B, C])(implicit F: Functor[C], S: Semigroupal[C]
-        ): Validator[A, B, C] = iv.combine(Builder.apply.path(p, f)(v))
+            v: Validator[L, RR, F])(implicit F: Functor[F], S: Semigroupal[F]
+        ): Validator[L, R, F] = iv.combine(Builder.apply.path(p, f)(v))
     }
-    case class PartiallyAppliedCombinePR[A, B, C[_], D](iv: Validator[A, B, C], p: PathPart, f: A => D) {
+    case class PartiallyAppliedCombinePR[L, R, F[_], RR](iv: Validator[L, R, F], p: PathPart, f: R => RR) {
         def apply(
-            fv: D => C[Boolean], m1: Message[D, B], ms: Message[D, B]*)(
-            implicit F: Functor[C], S: Semigroupal[C]
-        ): Validator[A, B, C] = iv.combine(
-            Builder.apply.path(p, f)(Builder.apply[D, B, C].root(fv, m1, ms: _*))
+            fv: RR => F[Boolean], m1: Message[RR, L], ms: Message[RR, L]*)(
+            implicit F: Functor[F], S: Semigroupal[F]
+        ): Validator[L, R, F] = iv.combine(
+            Builder.apply.path(p, f)(Builder.apply.root(fv, m1, ms: _*))
         )
     }
 }

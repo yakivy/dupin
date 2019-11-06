@@ -3,53 +3,52 @@ package dupin.core
 import cats.Functor
 import cats.Semigroupal
 import cats.data.NonEmptyList
-import dupin.Message
 import dupin.core.Builder.PartiallyAppliedCombinePR
 import dupin.core.Builder.PartiallyAppliedPath
+import dupin.dsl.Message
 import scala.language.experimental.macros
 
-
-class Builder[A, B, C[_]] {
+class Builder[L, R, F[_]] {
     def root(
-        f: A => C[Boolean], m1: Message[A, B], ms: Message[A, B]*)(
-        implicit F: Functor[C]
-    ): Validator[A, B, C] = Validator(Root, a => F.map(f(a)) {
+        f: R => F[Boolean], m1: Message[R, L], ms: Message[R, L]*)(
+        implicit F: Functor[F]
+    ): Validator[L, R, F] = Validator(Root, a => F.map(f(a)) {
         if (_) Success(a) else Fail(NonEmptyList(m1, ms.toList))
     })
 
-    def path[D](f: A => D): PartiallyAppliedPath[A, B, C, D] =
-        macro BuilderMacro.pathImpl[A, B, C, D]
+    def path[RR](f: R => RR): PartiallyAppliedPath[L, R, F, RR] =
+        macro BuilderMacro.pathImpl[L, R, F, RR]
 
-    def path[D](
-        p: PathPart, f: A => D)(v: Validator[D, B, C])(implicit F: Functor[C]
-    ): Validator[A, B, C] = Validator(p :: v.path, v.compose(f).f)
+    def path[RR](
+        p: PathPart, f: R => RR)(v: Validator[L, RR, F])(implicit F: Functor[F]
+    ): Validator[L, R, F] = Validator(p :: v.path, v.compose(f).f)
 
     def apply(
-        f: A => C[Boolean], m1: Message[A, B], ms: Message[A, B]*)(
-        implicit F: Functor[C]
-    ): Validator[A, B, C] = root(f, m1, ms: _*)
+        f: R => F[Boolean], m1: Message[R, L], ms: Message[R, L]*)(
+        implicit F: Functor[F]
+    ): Validator[L, R, F] = root(f, m1, ms: _*)
 
     def combineR(
-        f: A => C[Boolean], m1: Message[A, B], ms: Message[A, B]*)(
-        implicit F: Functor[C], S: Semigroupal[C]
-    ): Validator[A, B, C] = root(f, m1, ms: _*)
+        f: R => F[Boolean], m1: Message[R, L], ms: Message[R, L]*)(
+        implicit F: Functor[F], S: Semigroupal[F]
+    ): Validator[L, R, F] = root(f, m1, ms: _*)
 
-    def combineP[D](f: A => D): PartiallyAppliedPath[A, B, C, D] =
-        macro BuilderMacro.pathImpl[A, B, C, D]
+    def combineP[RR](f: R => RR): PartiallyAppliedPath[L, R, F, RR] =
+        macro BuilderMacro.pathImpl[L, R, F, RR]
 
-    def combinePR[D](f: A => D): PartiallyAppliedCombinePR[A, B, C, D] =
-        macro BuilderMacro.combinePRImpl[A, B, C, D]
+    def combinePR[RR](f: R => RR): PartiallyAppliedCombinePR[L, R, F, RR] =
+        macro BuilderMacro.combinePRImpl[L, R, F, RR]
 }
 
 object Builder {
-    case class PartiallyAppliedPath[A, B, C[_], D](p: PathPart, f: A => D) {
-        def apply(v: Validator[D, B, C])(implicit F: Functor[C]): Validator[A, B, C] =
-            Builder[A, B, C].path(p, f)(v)
+    case class PartiallyAppliedPath[L, R, F[_], RR](p: PathPart, f: R => RR) {
+        def apply(v: Validator[L, RR, F])(implicit F: Functor[F]): Validator[L, R, F] =
+            Builder.apply.path(p, f)(v)
     }
-    case class PartiallyAppliedCombinePR[A, B, C[_], D](p: PathPart, f: A => D) {
+    case class PartiallyAppliedCombinePR[L, R, F[_], RR](p: PathPart, f: R => RR) {
         def apply(
-            fv: D => C[Boolean], m1: Message[D, B], ms: Message[D, B]*)(implicit F: Functor[C]
-        ): Validator[A, B, C] = Builder.apply.path(p, f)(Builder.apply[D, B, C].root(fv, m1, ms: _*))
+            fv: RR => F[Boolean], m1: Message[RR, L], ms: Message[RR, L]*)(implicit F: Functor[F]
+        ): Validator[L, R, F] = Builder.apply.path(p, f)(Builder.apply.root(fv, m1, ms: _*))
     }
-    def apply[A, B, C[_]]: Builder[A, B, C] = new Builder()
+    def apply[L, R, F[_]]: Builder[L, R, F] = new Builder()
 }

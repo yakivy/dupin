@@ -5,13 +5,13 @@ import dupin.core.Builder.PartiallyAppliedPath
 import scala.reflect.macros.blackbox
 
 object BuilderMacro {
-    def pathImpl[A, B, C[_], D](
-        c: blackbox.Context)(f: c.Expr[A => D]
-    ): c.Expr[PartiallyAppliedPath[A, B, C, D]] = {
+    def pathImpl[L, R, F[_], RR](
+        c: blackbox.Context)(f: c.Expr[R => RR]
+    ): c.Expr[PartiallyAppliedPath[L, R, F, RR]] = {
         import c.universe._
         f.tree match {
             case q"($_) => $_.${field: Name}" =>
-                c.Expr[PartiallyAppliedPath[A, B, C, D]](q"""
+                c.Expr[PartiallyAppliedPath[L, R, F, RR]](q"""
                    _root_.dupin.core.Builder.PartiallyAppliedPath(
                         _root_.dupin.core.FieldPart(${field.decodedName.toString}), $f
                    )
@@ -20,13 +20,13 @@ object BuilderMacro {
         }
     }
 
-    def combinePRImpl[A, B, C[_], D](
-        c: blackbox.Context)(f: c.Expr[A => D]
-    ): c.Expr[PartiallyAppliedCombinePR[A, B, C, D]] = {
+    def combinePRImpl[L, R, F[_], RR](
+        c: blackbox.Context)(f: c.Expr[R => RR]
+    ): c.Expr[PartiallyAppliedCombinePR[L, R, F, RR]] = {
         import c.universe._
         f.tree match {
             case q"($_) => $_.${field: Name}" =>
-                c.Expr[PartiallyAppliedCombinePR[A, B, C, D]](q"""
+                c.Expr[PartiallyAppliedCombinePR[L, R, F, RR]](q"""
                    _root_.dupin.core.Builder.PartiallyAppliedCombinePR(
                         _root_.dupin.core.FieldPart(${field.decodedName.toString}), $f
                    )
