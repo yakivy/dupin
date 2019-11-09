@@ -1,8 +1,6 @@
 package dupin
 
 import cats.Id
-import cats.instances.function._
-import cats.syntax.functor._
 import scala.concurrent.Future
 
 package object dsl {
@@ -18,5 +16,5 @@ package object dsl {
     type Message[-R, +L] = core.Context[R] => L
     type BaseMessage[-R] = Message[R, String]
 
-    implicit def idF1Conversion[A, B](a: A => B): A => Id[B] = a.map(b => b)
+    implicit def idF1Conversion[A, B](f: A => B): A => Id[B] = a => f(a)
 }

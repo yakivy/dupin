@@ -2,12 +2,10 @@ package dupin.core
 
 import cats.Functor
 import cats.Semigroupal
-import cats.instances.function._
 import cats.syntax.contravariantSemigroupal._
-import cats.syntax.functor._
-import dupin.dsl.Message
 import dupin.core.Validator.PartiallyAppliedCombineP
 import dupin.core.Validator.PartiallyAppliedCombinePR
+import dupin.dsl.Message
 import scala.language.experimental.macros
 
 case class Validator[L, R, F[_]](path: Path, f: R => F[Result[Message[R, L], R]]) {
@@ -16,7 +14,7 @@ case class Validator[L, R, F[_]](path: Path, f: R => F[Result[Message[R, L], R]]
 
     def messages(
         m1: Message[R, L], ms: Message[R, L]*)(implicit F: Functor[F]
-    ): Validator[L, R, F] = Validator(path, f.map(F.map(_)(_.messages(m1, ms: _*))))
+    ): Validator[L, R, F] = Validator(path, a => F.map(f(a))(_.messages(m1, ms: _*)))
 
     def compose[RR](ff: RR => R)(implicit F: Functor[F]): Validator[L, RR, F] = Validator(
         path, a => F.map(f(ff(a)))(_.bimap(_.compose(_.map(path, ff)), _ => a))
