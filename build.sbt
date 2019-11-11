@@ -2,6 +2,7 @@ lazy val versions = new {
     val scala213 = "2.13.1"
     val scala212 = "2.12.10"
     val cats = "2.0.0"
+    val scalatest = "3.0.8"
 }
 
 lazy val commonSettings = Seq(
@@ -25,6 +26,7 @@ lazy val commonSettings = Seq(
 lazy val commonDependencies = Seq(
     libraryDependencies ++= Seq(
         "org.typelevel" %% "cats-core" % versions.cats % "test,provided",
+        "org.scalatest" %% "scalatest" % versions.scalatest % "test",
         "org.scala-lang" % "scala-reflect" % scalaVersion.value
     )
 )
@@ -40,7 +42,7 @@ lazy val publishingSettings = Seq(
 )
 
 lazy val root = project.in(file("."))
-    .settings(commonSettings: _*)
+    .settings(name := "dupin")
     .settings(publishingSettings: _*)
     .settings(publish / skip := true)
     .aggregate(core)

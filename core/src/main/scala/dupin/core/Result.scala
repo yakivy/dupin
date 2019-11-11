@@ -5,13 +5,16 @@ import cats.data.NonEmptyList
 trait Result[+L, +R] {
     def either: Either[NonEmptyList[L], R]
 
-    def messages[LL >: L](m1: LL, ms: LL*): Result[LL, R]
+    def list: List[L] = either.left.map(_.toList).left.getOrElse(Nil)
 
-    def messages: List[L] = either.left.map(_.toList).left.getOrElse(Nil)
+    def recoverWith[LL >: L, RR >: R](f: NonEmptyList[LL] => Result[LL, RR]): Result[LL, RR] = this match {
+        case Success(_) => this
+        case Fail(a) => f(a)
+    }
 
-    def map[A](f: R => A): Result[L, A] = this match {
+    def map[RR](f: R => RR): Result[L, RR] = this match {
         case Success(a) => Success(f(a))
-        case Fail(_) => this.asInstanceOf[Result[L, A]]
+        case Fail(_) => this.asInstanceOf[Result[L, RR]]
     }
 
     def leftMap[LL](f: L => LL): Result[LL, R] = this match {
@@ -25,7 +28,7 @@ trait Result[+L, +R] {
 
     def combine[LL >: L, RR >: R](a: Result[LL, RR]): Result[LL, RR] = this match {
         case Success(_) => a
-        case Fail(v) => Fail(v ++ a.messages)
+        case Fail(v) => Fail(v ++ a.list)
     }
 
     def orElse[LL >: L, RR >: R](a: Result[LL, RR]): Result[LL, RR] = this match {
@@ -36,10 +39,8 @@ trait Result[+L, +R] {
 
 case class Success[L, R](a: R) extends Result[L, R] {
     override def either: Either[NonEmptyList[L], R] = Right(a)
-    override def messages[A >: L](m1: A, ms: A*): Result[A, R] = this
 }
 
 case class Fail[L, R](a: NonEmptyList[L]) extends Result[L, R] {
     override def either: Either[NonEmptyList[L], R] = Left(a)
-    override def messages[A >: L](m1: A, ms: A*): Result[A, R] = Fail(NonEmptyList(m1, ms.toList))
 }

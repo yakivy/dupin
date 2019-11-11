@@ -1,6 +1,6 @@
 package dupin
 
-import dupin.dsl._
+import dupin.base._
 
 object ReadmeSpec {
     case class Login(value: String) extends AnyVal
@@ -32,5 +32,5 @@ object ReadmeSpec {
         BaseValidator[LoginForm].path(_.login)(implicitly) &&
             BaseValidator[LoginForm].path(_.login)(Validator.root(_.value.nonEmpty, _ => "")) &&
             BaseValidator[LoginForm].root(_.password == "", _ => "")
-        ).messages(LoginFormErrorMessage)
+        ).recoverAsF(LoginFormErrorMessage)
 }

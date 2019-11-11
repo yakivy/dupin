@@ -11,14 +11,17 @@ sealed abstract class Path extends AbstractSeq[PathPart] with LinearSeq[PathPart
         if (n < 0 || rest.isEmpty) throw new IndexOutOfBoundsException("" + n)
         rest.head
     }
+    override def toString(): String = reverse.map(_.value).mkString(".", ".", "")
 }
 final case class ::(override val head: PathPart, override val tail: Path) extends Path {
     override def length: Int = 1 + tail.length
+    override def isEmpty: Boolean = false
 }
 case object Root extends Path {
     override def head: Nothing = throw new NoSuchElementException("head of empty path")
     override def tail: Nothing = throw new NoSuchElementException("tail of empty path")
     override def length: Int = 0
+    override def isEmpty: Boolean = true
 }
 
 trait PathPart {
