@@ -39,21 +39,18 @@ class ValidatorSpec extends WordSpec {
         val c: String => Boolean = _ != "invalid string"
         "created from explicit field path" should {
             val p = FieldPart("value") :: Root
-            val v1 = BaseValidator[OneFieldDataStructure].path(p, _.value)(Validator(c, m))
-            val v2 = BaseValidator[OneFieldDataStructure].composeP(p, _.value)(Validator(c, m))
+            val v = BaseValidator[OneFieldDataStructure].path(p, _.value)(Validator(c, m))
 
             "return success result" in {
                 val ds = OneFieldDataStructure("valid string")
                 val r = Success(ds)
-                assert(v1.validate(ds) == r)
-                assert(v2.validate(ds) == r)
+                assert(v.validate(ds) == r)
             }
 
             "return fail result" in {
                 val ds = OneFieldDataStructure("invalid string")
                 val r = Fail(NonEmptyList(".value is invalid", Nil))
-                assert(v1.validate(ds) == r)
-                assert(v2.validate(ds) == r)
+                assert(v.validate(ds) == r)
             }
         }
 
@@ -150,6 +147,46 @@ class ValidatorSpec extends WordSpec {
                 val r = Fail(NonEmptyList(".v1 is invalid", List(".v2 is invalid")))
                 assert(v1.validate(ds) == r)
                 assert(v2.validate(ds) == r)
+            }
+        }
+    }
+
+    "Two layer validator" when {
+        case class SecondLayerDataStructure(v: String)
+        case class FirstLayerDataStructure(v1: SecondLayerDataStructure, v2: Int)
+        val m: BaseMessage[Any] = _.path + " is invalid"
+
+        "created from field path" should {
+            val c1: String => Boolean = _ != "invalid string"
+            val c2: Int => Boolean = _ != 0
+            val vi = BaseValidator[SecondLayerDataStructure]
+                .combineP(_.v)(Validator(c1, m))
+            val v = BaseValidator[FirstLayerDataStructure]
+                .combineP(_.v1)(vi)
+                .combinePR(_.v2)(c2, m)
+
+            "return success result with two successful checks" in {
+                val ds = FirstLayerDataStructure(SecondLayerDataStructure("valid string"), 1)
+                val r = Success(ds)
+                assert(v.validate(ds) == r)
+            }
+
+            "return fail result with first fail check" in {
+                val ds = FirstLayerDataStructure(SecondLayerDataStructure("invalid string"), 1)
+                val r = Fail(NonEmptyList(".v1.v is invalid", Nil))
+                assert(v.validate(ds) == r)
+            }
+
+            "return fail result with second fail check" in {
+                val ds = FirstLayerDataStructure(SecondLayerDataStructure("valid string"), 0)
+                val r = Fail(NonEmptyList(".v2 is invalid", Nil))
+                assert(v.validate(ds) == r)
+            }
+
+            "return fail result with two fail checks" in {
+                val ds = FirstLayerDataStructure(SecondLayerDataStructure("invalid string"), 0)
+                val r = Fail(NonEmptyList(".v1.v is invalid", ".v2 is invalid" :: Nil))
+                assert(v.validate(ds) == r)
             }
         }
     }
