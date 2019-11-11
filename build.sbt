@@ -1,6 +1,7 @@
 lazy val versions = new {
     val scala213 = "2.13.1"
     val scala212 = "2.12.10"
+    val scala211 = "2.11.12"
     val cats = "2.0.0"
     val scalatest = "3.0.8"
 }
@@ -20,7 +21,7 @@ lazy val commonSettings = Seq(
     licenses := Seq("MIT License" -> url("http://www.opensource.org/licenses/mit-license.html")),
     homepage := Some(url("https://github.com/yakivy/dupin")),
     scalaVersion := versions.scala213,
-    crossScalaVersions := Seq(versions.scala212, versions.scala213),
+    crossScalaVersions := Seq(versions.scala213, versions.scala212, versions.scala211),
 )
 
 lazy val commonDependencies = Seq(
