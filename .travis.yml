@@ -9,7 +9,8 @@ jdk:
   - openjdk11
 
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport
+  - sbt ++$TRAVIS_SCALA_VERSION clean coverage
+  - sbt ++$TRAVIS_SCALA_VERSION test coverageReport
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
