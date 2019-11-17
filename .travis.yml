@@ -5,15 +5,19 @@ jdk:
 
 jobs:
   include:
-    - stage: build and test
+    - stage: scala 2.11 build and test
+      scala:
+        - 2.11.12
+      script:
+        - sbt ++$TRAVIS_SCALA_VERSION clean test
+    - stage: scala 2.12 build and test with coverage report
       scala:
         - 2.12.10
-        - 2.11.12
       script:
         - sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport
       after_success:
         - bash <(curl -s https://codecov.io/bash)
-    - stage: build and test without report
+    - stage: scala 2.13 build and test
       scala:
         - 2.13.1
       script:
