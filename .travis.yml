@@ -11,8 +11,7 @@ jobs:
         - 2.11.12
       script:
         - sbt ++$TRAVIS_SCALA_VERSION clean test
-    - build_test_report
-      stage: build and test
+    - stage: build and test
       scala:
         - 2.12.10
       script:
