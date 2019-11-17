@@ -8,12 +8,21 @@ scala:
 jdk:
   - openjdk11
 
-script:
-  - sbt ++$TRAVIS_SCALA_VERSION clean coverage
-  - sbt ++$TRAVIS_SCALA_VERSION test coverageReport
-
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
+jobs:
+  include:
+    - stage: build and test
+      scala:
+        - 2.12.10
+        - 2.11.12
+      script:
+        - sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport
+      after_success:
+        - bash <(curl -s https://codecov.io/bash)
+    - stage: build and test without report
+      scala:
+        - 2.13.1
+      script:
+        - sbt ++$TRAVIS_SCALA_VERSION clean test
 
 cache:
   directories:
