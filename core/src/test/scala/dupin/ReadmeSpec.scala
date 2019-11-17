@@ -20,7 +20,7 @@ trait ReadmeValidatorFixture extends ReadmeDomainFixture {
     implicit val teamValidator = BaseValidator[Team]
         .combineP(_.name)(implicitly)
         .combineP(_.members)(implicitly)
-        .combineR(_.members.size <= 8, _ => "you will not be able to feed the team with pizza!")
+        .combineR(_.members.size <= 8, _ => "team should be fed with two pizzas!")
 }
 
 trait ReadmeValidatingFixture extends ReadmeValidatorFixture {
@@ -54,7 +54,7 @@ class ReadmeValidatingSpec extends WordSpec with ReadmeValidatingFixture {
                 ".name should be non empty",
                 ".members.[0].name should be non empty",
                 ".members.[0].age should be between 18 and 40",
-                "you will not be able to feed the team with two pizzas!"
+                "team should be fed with two pizzas!"
             ))
         }
     }

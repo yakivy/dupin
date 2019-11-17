@@ -66,7 +66,7 @@ assert(c == List(
     ".name should be non empty",
     ".members.[0].name should be non empty",
     ".members.[0].age should be between 18 and 40",
-    "you will not be able to feed the team with two pizzas!"
+    "team should be fed with two pizzas!"
 ))
 ```
 
