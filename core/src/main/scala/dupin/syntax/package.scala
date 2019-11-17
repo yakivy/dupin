@@ -1,3 +1,3 @@
 package dupin
 
-package object syntax extends ValidatorSyntax
+package object syntax extends DupinSyntax

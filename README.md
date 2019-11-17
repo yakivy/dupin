@@ -8,6 +8,68 @@
 
 Dupin is a minimal, idiomatic, customizable validation for Scala.
 
+### Quick start
+Add dupin dependency to the build file, let's assume you are using sbt:
+```scala
+libraryDependencies += Seq(
+  "com.github.yakivy" %% "dupin-core" % "0.1.0"
+)
+```
+Describe the domain:
+```scala
+case class Name(value: String)
+case class Member(name: Name, age: Int)
+case class Team(name: Name, members: Seq[Member])
+```
+Define some validators:
+```scala
+import dupin.all._
+
+implicit val nameValidator = BaseValidator[Name](
+    _.value.nonEmpty, _.path + " should be non empty"
+)
+
+implicit val memberValidator = BaseValidator[Member]
+    .combineP(_.name)(implicitly)
+    .combinePR(_.age)(_ > 0, _.path + " should be positive")
+
+implicit val teamValidator = BaseValidator[Team]
+    .combineP(_.name)(implicitly)
+    .combineP(_.members)(implicitly)
+    .combineR(_.members.size <= 8, _ => "team should be fed with two pizzas!")
+```
+Validate them all:
+```scala
+import dupin.all._
+
+val validTeam = Team(
+    Name("bears"),
+    List(
+        Member(Name("Yakiv"), 26),
+        Member(Name("Myroslav"), 31),
+        Member(Name("Andrii"), 25)
+    )
+)
+
+val invalidTeam = Team(
+    Name(""),
+    Member(Name(""), -1) :: (1 to 10).map(_ => Member(Name("valid name"), 20)).toList
+)
+
+val a = validTeam.validate.either
+val b = validTeam.isValid
+val c = invalidTeam.validate.list
+
+assert(a == Right(validTeam))
+assert(b)
+assert(c == List(
+    ".name should be non empty",
+    ".members.[0].name should be non empty",
+    ".members.[0].age should be between 18 and 40",
+    "you will not be able to feed the team with pizza!"
+))
+```
+
 ### Notes
 
 Library is in active development and API might change.

@@ -1,36 +1,61 @@
 package dupin
 
-import dupin.base._
+import org.scalatest.WordSpec
 
-object ReadmeSpec {
-    case class Login(value: String) extends AnyVal
-    case class RegistrationForm(login: Login, age: Int, password: String, passwordAgain: String)
-    case class LoginForm(login: Login, password: String)
+trait ReadmeDomainFixture {
+    case class Name(value: String)
+    case class Member(name: Name, age: Int)
+    case class Team(name: Name, members: List[Member])
+}
 
-    val AgeErrorMessage: BaseMessage[Int] =
-        c => s"you can't have ${c.value} years"
-    val PasswordsErrorMessage: BaseMessage[Any] =
-        _ => "passwords should be equal"
-    val LoginFormErrorMessage: BaseMessage[Any] =
-        _ => "invalid login or password"
+trait ReadmeValidatorFixture extends ReadmeDomainFixture {
+    import dupin.all._
 
-    implicit val loginValidator = BaseValidator[Login].root(
-        _.value.matches("[a-zA-Z]{2,16}"),
-        c => s"${c.path} should contain only letters and have from 2 to 16 characters"
+    implicit val nameValidator = BaseValidator[Name](_.value.nonEmpty, _.path + " should be non empty")
+
+    implicit val memberValidator = BaseValidator[Member]
+        .combineP(_.name)(implicitly)
+        .combinePR(_.age)(a => a > 18 && a < 40, _.path + " should be between 18 and 40")
+
+    implicit val teamValidator = BaseValidator[Team]
+        .combineP(_.name)(implicitly)
+        .combineP(_.members)(implicitly)
+        .combineR(_.members.size <= 8, _ => "you will not be able to feed the team with pizza!")
+}
+
+trait ReadmeValidatingFixture extends ReadmeValidatorFixture {
+    import dupin.all._
+
+    val validTeam = Team(
+        Name("bears"),
+        List(
+            Member(Name("Yakiv"), 26),
+            Member(Name("Myroslav"), 31),
+            Member(Name("Andrii"), 25)
+        )
     )
 
-    private val positive = BaseValidator[Int].root(_ > 0, _ + " should be positive")
-    private def max(v: Int) = BaseValidator[Int].root(_ <= v, _ + s" should be less then $v")
-    implicit val registrationFormValidator = BaseValidator[RegistrationForm]
-        .combineP(_.login)(implicitly)
-        .combineP(_.age)(positive && max(100))
-        .combinePR(_.login)(_.value == "", _ => "")
-        .combineR(a => a.password == a.passwordAgain, PasswordsErrorMessage)
+    val invalidTeam = Team(
+        Name(""),
+        Member(Name(""), -1) :: (1 to 10).map(_ => Member(Name("Valid name"), 20)).toList
+    )
 
+    val a = validTeam.validate.either
+    val b = validTeam.isValid
+    val c = invalidTeam.validate.list
+}
 
-    implicit val loginFormValidator = (
-        BaseValidator[LoginForm].path(_.login)(implicitly) &&
-            BaseValidator[LoginForm].path(_.login)(Validator.root(_.value.nonEmpty, _ => "")) &&
-            BaseValidator[LoginForm].root(_.password == "", _ => "")
-        ).recoverAsF(LoginFormErrorMessage)
+class ReadmeValidatingSpec extends WordSpec with ReadmeValidatingFixture {
+    "Readme validators" should {
+        "be correct" in {
+            assert(a == Right(validTeam))
+            assert(b)
+            assert(c == List(
+                ".name should be non empty",
+                ".members.[0].name should be non empty",
+                ".members.[0].age should be between 18 and 40",
+                "you will not be able to feed the team with pizza!"
+            ))
+        }
+    }
 }
