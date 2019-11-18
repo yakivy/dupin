@@ -45,7 +45,7 @@ trait ReadmeValidatingFixture extends ReadmeValidatorFixture {
     val c = invalidTeam.validate.list
 }
 
-class ReadmeValidatingSpec extends WordSpec with ReadmeValidatingFixture {
+class QuickStartSpec extends WordSpec with ReadmeValidatingFixture {
     "Readme validators" should {
         "be correct" in {
             assert(a == Right(validTeam))

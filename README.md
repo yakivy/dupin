@@ -1,4 +1,4 @@
-# Dupin
+## Dupin
 [![Maven Central](https://img.shields.io/maven-central/v/com.github.yakivy/dupin-core_2.12.svg)](https://mvnrepository.com/search?q=dupin)
 [![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/https/oss.sonatype.org/com.github.yakivy/dupin-core_2.13.svg)](https://oss.sonatype.org/content/repositories/snapshots/com/github/yakivy/dupin-core_2.13/)
 [![Build Status](https://travis-ci.com/yakivy/dupin.svg?branch=master)](https://travis-ci.com/yakivy/dupin)
@@ -69,6 +69,22 @@ assert(c == List(
     "team should be fed with two pizzas!"
 ))
 ```
+
+### Message customization
+
+In progress
+
+### Kind customization
+
+In progress
+
+### Predefined validators
+
+In progress
+
+### Final custom validator
+
+In progress
 
 ### Notes
 
