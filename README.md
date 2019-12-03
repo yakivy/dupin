@@ -208,7 +208,7 @@ package object custom
     def CustomValidator[R] = Validator[I18nMessage, R, Future]
 }
 ```
-Then you can start using validation with single import:
+Then you can start using own validator type with single import:
 ```scala
 import dupin.custom._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -237,7 +237,7 @@ import dupin.all._
 def min(value: Int) = BaseValidator[Int](_ > value, _.path + " should be grater then " + value)
 def max(value: Int) = BaseValidator[Int](_ < value, _.path + " should be less then " + value)
 ``` 
-And since validators can be combined, you can simply write:
+And since validators can be combined, you can create validators from other validators:
 ```scala
 import dupin.all._
 
