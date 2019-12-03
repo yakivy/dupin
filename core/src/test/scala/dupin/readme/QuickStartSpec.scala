@@ -35,9 +35,9 @@ trait QuickStartValidatingFixture extends QuickStartValidatorFixture {
         Member(Name(""), -1) :: (1 to 10).map(_ => Member(Name("Valid name"), 20)).toList
     )
 
-    val a: Either[NonEmptyList[String], Team] = validTeam.validate.either
-    val b: Boolean = validTeam.isValid
-    val c: List[String] = invalidTeam.validate.list
+    val a = validTeam.validate.either
+    val b = validTeam.isValid
+    val c = invalidTeam.validate.list
 }
 
 class QuickStartSpec extends WordSpec with QuickStartValidatingFixture {

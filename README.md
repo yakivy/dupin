@@ -12,7 +12,7 @@ Dupin is a minimal, idiomatic, customizable validation for Scala.
 Add dupin dependency to the build file, let's assume you are using sbt:
 ```scala
 libraryDependencies += Seq(
-  "com.github.yakivy" %% "dupin-core" % "0.1.0"
+  "com.github.yakivy" %% "dupin-core" % "0.1.1"
 )
 ```
 Describe the domain:
