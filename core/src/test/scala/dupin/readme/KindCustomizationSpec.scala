@@ -6,7 +6,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
 
-trait MessageCustomizationDomainFixture extends ReadmeDomainFixture {
+trait KindCustomizationDomainFixture extends ReadmeDomainFixture {
     import scala.concurrent.Future
 
     class NameService {
@@ -16,7 +16,7 @@ trait MessageCustomizationDomainFixture extends ReadmeDomainFixture {
     }
 }
 
-trait KindCustomizationDslFixture extends MessageCustomizationDomainFixture {
+trait KindCustomizationDslFixture extends KindCustomizationDomainFixture {
     import dupin.all._
     import scala.concurrent.Future
 
