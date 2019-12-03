@@ -1,14 +1,9 @@
-package dupin
+package dupin.readme
 
+import cats.data.NonEmptyList
 import org.scalatest.WordSpec
 
-trait ReadmeDomainFixture {
-    case class Name(value: String)
-    case class Member(name: Name, age: Int)
-    case class Team(name: Name, members: List[Member])
-}
-
-trait ReadmeValidatorFixture extends ReadmeDomainFixture {
+trait QuickStartValidatorFixture extends ReadmeDomainFixture {
     import dupin.all._
 
     implicit val nameValidator = BaseValidator[Name](_.value.nonEmpty, _.path + " should be non empty")
@@ -23,7 +18,7 @@ trait ReadmeValidatorFixture extends ReadmeDomainFixture {
         .combineR(_.members.size <= 8, _ => "team should be fed with two pizzas!")
 }
 
-trait ReadmeValidatingFixture extends ReadmeValidatorFixture {
+trait QuickStartValidatingFixture extends QuickStartValidatorFixture {
     import dupin.all._
 
     val validTeam = Team(
@@ -40,12 +35,12 @@ trait ReadmeValidatingFixture extends ReadmeValidatorFixture {
         Member(Name(""), -1) :: (1 to 10).map(_ => Member(Name("Valid name"), 20)).toList
     )
 
-    val a = validTeam.validate.either
-    val b = validTeam.isValid
-    val c = invalidTeam.validate.list
+    val a: Either[NonEmptyList[String], Team] = validTeam.validate.either
+    val b: Boolean = validTeam.isValid
+    val c: List[String] = invalidTeam.validate.list
 }
 
-class QuickStartSpec extends WordSpec with ReadmeValidatingFixture {
+class QuickStartSpec extends WordSpec with QuickStartValidatingFixture {
     "Readme validators" should {
         "be correct" in {
             assert(a == Right(validTeam))

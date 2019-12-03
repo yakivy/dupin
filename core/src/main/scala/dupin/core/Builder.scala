@@ -2,19 +2,19 @@ package dupin.core
 
 import cats.Functor
 import cats.data.NonEmptyList
-import dupin.Message
+import dupin.MessageBuilder
 import dupin.core.Builder.PartiallyAppliedCombinePR
 import dupin.core.Builder.PartiallyAppliedPath
 import scala.language.experimental.macros
 
 class Builder[L, R, F[_]] {
-    def root(f: R => F[Boolean], m: Message[R, L])(implicit F: Functor[F]): Validator[L, R, F] =
+    def root(f: R => F[Boolean], m: MessageBuilder[R, L])(implicit F: Functor[F]): Validator[L, R, F] =
         Validator(a => F.map(f(a))(if (_) Success(a) else Fail(NonEmptyList(m, Nil))))
 
-    def apply(f: R => F[Boolean], m: Message[R, L])(implicit F: Functor[F]): Validator[L, R, F] =
+    def apply(f: R => F[Boolean], m: MessageBuilder[R, L])(implicit F: Functor[F]): Validator[L, R, F] =
         root(f, m)
 
-    def combineR(f: R => F[Boolean], m: Message[R, L])(implicit F: Functor[F]): Validator[L, R, F] =
+    def combineR(f: R => F[Boolean], m: MessageBuilder[R, L])(implicit F: Functor[F]): Validator[L, R, F] =
         root(f, m)
 
     def path[RR](p: Path, f: R => RR)(v: Validator[L, RR, F])(implicit F: Functor[F]): Validator[L, R, F] =
@@ -35,7 +35,7 @@ object Builder {
     }
 
     case class PartiallyAppliedCombinePR[L, R, F[_], RR](p: PathPart, f: R => RR) {
-        def apply(fv: RR => F[Boolean], m: Message[RR, L])(implicit F: Functor[F]): Validator[L, R, F] =
+        def apply(fv: RR => F[Boolean], m: MessageBuilder[RR, L])(implicit F: Functor[F]): Validator[L, R, F] =
             Builder.apply.path(p :: Root, f)(Builder.apply.root(fv, m))
     }
 

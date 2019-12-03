@@ -11,7 +11,7 @@ import org.scalatest.WordSpec
 class ValidatorSpec extends WordSpec {
     "One field validator" when {
         case class OneFieldDataStructure(value: String)
-        val m: BaseMessage[Any] = _.path + " is invalid"
+        val m: BaseMessageBuilder[Any] = _.path + " is invalid"
 
         "created from root" should {
             val c: OneFieldDataStructure => Boolean = _.value != "invalid string"
@@ -79,7 +79,7 @@ class ValidatorSpec extends WordSpec {
 
     "Two field validator" when {
         case class TwoFieldDataStructure(v1: String, v2: Int)
-        val m: BaseMessage[Any] = _.path + " is invalid"
+        val m: BaseMessageBuilder[Any] = _.path + " is invalid"
 
         "created from root" should {
             val c1: TwoFieldDataStructure => Boolean = _.v1 != "invalid string"
@@ -154,7 +154,7 @@ class ValidatorSpec extends WordSpec {
     "Two layer validator" when {
         case class SecondLayerDataStructure(v: String)
         case class FirstLayerDataStructure(v1: SecondLayerDataStructure, v2: Int)
-        val m: BaseMessage[Any] = _.path + " is invalid"
+        val m: BaseMessageBuilder[Any] = _.path + " is invalid"
 
         "created from field path" should {
             val c1: String => Boolean = _ != "invalid string"

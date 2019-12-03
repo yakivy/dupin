@@ -72,11 +72,109 @@ assert(c == List(
 
 ### Message customization
 
-In progress
+But not many real projects use strings as validation messages, for example you want to support internationalization:
+```scala
+case class I18nMessage(
+    description: String,
+    key: String,
+    params: List[String]
+)
+```
+As `BaseValidator[R]` is just an type alias for `Validator[String, R, Id]`, you can define own validator type with builder:
+```scala
+import dupin.all._
+
+type I18nValidator[R] = Validator[I18nMessage, R, cats.Id]
+def I18nValidator[R] = Validator[I18nMessage, R, cats.Id]
+```
+And start creating validators with custom messages:
+```scala
+import dupin.all._
+
+implicit val nameValidator = I18nValidator[Name](_.value.nonEmpty, c => I18nMessage(
+    c.path + " should be non empty",
+    "validator.name.empty",
+    List(c.path.toString())
+))
+
+implicit val memberValidator = I18nValidator[Member]
+    .combineP(_.name)(implicitly)
+    .combinePR(_.age)(a => a > 18 && a < 40, c => I18nMessage(
+        c.path + " should be between 18 and 40",
+        "validator.member.age",
+        List(c.path.toString())
+    ))
+```
+Then validation messages will look like:
+```scala
+import dupin.all._
+
+val invalidMember = Member(Name(""), 0)
+val messages: List[I18nMessage] = invalidMember.validate.list
+assert(messages == List(
+    I18nMessage(
+        ".name should be non empty",
+        "validator.name.empty",
+        List(".name")
+    ),
+    I18nMessage(
+        ".age should be between 18 and 40",
+        "validator.member.age",
+        List(".age")
+    )
+))
+```
 
 ### Kind customization
 
-In progress
+For example you want to allow only using of limited list of names and they are stored in the database:
+```scala
+import scala.concurrent.Future
+
+class NameService {
+    def contains(name: Name): Future[Boolean] =
+        // Emulation of DB call
+        Future.successful(name != "")
+}
+```
+So to be able to handle checks that returns `Future[Boolean]`, you just need to define own validator type with builder:
+```scala
+import dupin.all._
+import scala.concurrent.Future
+
+type FutureValidator[R] = Validator[String, R, Future]
+def FutureValidator[R] = Validator[String, R, Future]
+``` 
+Then you can create validators with generic dsl (don't forget to import required type classes, as minimum `Functor[Future]`):
+```scala
+import cats.implicits._
+import dupin.all._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
+val nameService = new NameService
+
+implicit val nameValidator = FutureValidator[Name](nameService.contains, _.path + " should be non empty")
+
+implicit val memberValidator = FutureValidator[Member]
+    .combineP(_.name)(implicitly)
+    .combinePR(_.age)(a => Future.successful(a > 18 && a < 40), _.path + " should be between 18 and 40")
+```
+And validation result will look like:
+```scala
+import cats.implicits._
+import dupin.all._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
+val invalidMember = Member(Name(""), 0)
+val messages: Future[Either[NonEmptyList[String], Member]] = invalidMember.validate.map(_.either)
+
+assert(Await.result(messages, Duration.Inf) == Left(NonEmptyList.of(
+    ".name should be non empty",
+    ".age should be between 18 and 40"
+)))
+```
 
 ### Predefined validators
 
