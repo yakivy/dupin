@@ -132,9 +132,10 @@ For example you want to allow only using of limited list of names and they are s
 import scala.concurrent.Future
 
 class NameService {
-    def contains(name: Name): Future[Boolean] =
+    private val allowedNames = Set("Ada")
+    def contains(name: String): Future[Boolean] =
         // Emulation of DB call
-        Future.successful(name != "")
+        Future.successful(allowedNames(name))
 }
 ```
 So to be able to handle checks that returns `Future[Boolean]`, you just need to define own validator type with builder:
@@ -154,7 +155,9 @@ import scala.concurrent.Future
 
 val nameService = new NameService
 
-implicit val nameValidator = FutureValidator[Name](nameService.contains, _.path + " should be non empty")
+implicit val nameValidator = FutureValidator[Name](
+    n => nameService.contains(n.value), _.path + " should be non empty"
+)
 
 implicit val memberValidator = FutureValidator[Member]
     .combineP(_.name)(implicitly)
@@ -162,6 +165,7 @@ implicit val memberValidator = FutureValidator[Member]
 ```
 And validation result will look like:
 ```scala
+import cats.data.NonEmptyList
 import cats.implicits._
 import dupin.all._
 import scala.concurrent.ExecutionContext.Implicits.global

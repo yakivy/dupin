@@ -1,6 +1,5 @@
 package dupin.readme
 
-import cats.data.NonEmptyList
 import org.scalatest.WordSpec
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -10,9 +9,10 @@ trait KindCustomizationDomainFixture extends ReadmeDomainFixture {
     import scala.concurrent.Future
 
     class NameService {
-        def contains(name: Name): Future[Boolean] =
+        private val allowedNames = Set("Ada")
+        def contains(name: String): Future[Boolean] =
             // Emulation of DB call
-            Future.successful(name != "")
+            Future.successful(allowedNames(name))
     }
 }
 
@@ -31,7 +31,9 @@ trait KindCustomizationValidatorFixture extends KindCustomizationDslFixture {
 
     val nameService = new NameService
 
-    implicit val nameValidator = FutureValidator[Name](nameService.contains, _.path + " should be non empty")
+    implicit val nameValidator = FutureValidator[Name](
+        n => nameService.contains(n.value), _.path + " should be non empty"
+    )
 
     implicit val memberValidator = FutureValidator[Member]
         .combineP(_.name)(implicitly)
@@ -39,6 +41,7 @@ trait KindCustomizationValidatorFixture extends KindCustomizationDslFixture {
 }
 
 trait KindCustomizationValidatingFixture extends KindCustomizationValidatorFixture {
+    import cats.data.NonEmptyList
     import cats.implicits._
     import dupin.all._
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -51,6 +54,8 @@ trait KindCustomizationValidatingFixture extends KindCustomizationValidatorFixtu
 class KindCustomizationSpec extends WordSpec with KindCustomizationValidatingFixture {
     "Kind customization validators" should {
         "return custom kind" in {
+            import cats.data.NonEmptyList
+
             assert(Await.result(messages, Duration.Inf) == Left(NonEmptyList.of(
                 ".name should be non empty",
                 ".age should be between 18 and 40"
