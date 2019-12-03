@@ -2,14 +2,6 @@ package dupin.readme
 
 import org.scalatest.WordSpec
 
-trait MessageCustomizationDomainFixture extends ReadmeDomainFixture {
-    case class I18nMessage(
-        description: String,
-        key: String,
-        params: List[String]
-    )
-}
-
 trait MessageCustomizationDslFixture extends MessageCustomizationDomainFixture {
     import dupin.all._
 

@@ -8,6 +8,15 @@
 
 Dupin is a minimal, idiomatic, customizable validation for Scala.
 
+### Table of contents
+1. [Quick start](#quick-start)
+1. [Customization](#message-customization)
+    1. [Message customization](#message-customization)
+    1. [Kind customization](#kind-customization)
+    1. [Custom validating package](#custom-validating-package)
+1. [Predefined validators](#predefined-validators)
+1. [Notes](#notes)
+
 ### Quick start
 Add dupin dependency to the build file, let's assume you are using sbt:
 ```scala
@@ -80,7 +89,7 @@ case class I18nMessage(
     params: List[String]
 )
 ```
-As `BaseValidator[R]` is just an type alias for `Validator[String, R, Id]`, you can define own validator type with builder:
+As `BaseValidator[R]` is just a type alias for `Validator[String, R, Id]`, you can define own validator type with builder:
 ```scala
 import dupin.all._
 
@@ -111,6 +120,7 @@ import dupin.all._
 
 val invalidMember = Member(Name(""), 0)
 val messages: List[I18nMessage] = invalidMember.validate.list
+
 assert(messages == List(
     I18nMessage(
         ".name should be non empty",
@@ -180,13 +190,64 @@ assert(Await.result(messages, Duration.Inf) == Left(NonEmptyList.of(
 )))
 ```
 
+### Custom validating package
+
+To avoid imports boilerplate and isolating all customizations you can define own dupin package:
+```scala
+package dupin
+
+import cats.instances.FutureInstances
+import dupin.instances.DupinInstances
+import dupin.syntax.DupinSyntax
+import scala.concurrent.Future
+
+package object custom
+    extends DupinCoreDsl with DupinInstances with DupinSyntax
+        with FutureInstances {
+    type CustomValidator[R] = Validator[I18nMessage, R, Future]
+    def CustomValidator[R] = Validator[I18nMessage, R, Future]
+}
+```
+Then you can start using validation with single import:
+```scala
+import dupin.custom._
+import scala.concurrent.ExecutionContext.Implicits.global
+
+val nameService = new NameService
+
+implicit val nameValidator = CustomValidator[Name](
+    n => nameService.contains(n.value), c => I18nMessage(
+        c.path + " should be non empty",
+        "validator.name.empty",
+        List(c.path.toString())
+    )
+)
+
+val validName = Name("Ada")
+
+assert(Await.result(validName.isValid, Duration.Inf))
+```
+
 ### Predefined validators
 
-In progress
+The more validators you have, the more logic can be reused without writing validators from the scratch. Let's write common validators for minimum and maximum `Int` value:
+```scala
+import dupin.all._
 
-### Final custom validator
+def min(value: Int) = BaseValidator[Int](_ > value, _.path + " should be grater then " + value)
+def max(value: Int) = BaseValidator[Int](_ < value, _.path + " should be less then " + value)
+``` 
+And since validators can be combined, you can simply write:
+```scala
+import dupin.all._
 
-In progress
+implicit val memberValidator = BaseValidator[Member].path(_.age)(min(18) && max(40))
+
+val invalidMember = Member(Name("Ada"), 0)
+val messages = invalidMember.validate.list
+
+assert(messages == List(".age should be grater then 18"))
+```
 
 ### Notes
 

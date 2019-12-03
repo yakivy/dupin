@@ -5,17 +5,6 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
 
-trait KindCustomizationDomainFixture extends ReadmeDomainFixture {
-    import scala.concurrent.Future
-
-    class NameService {
-        private val allowedNames = Set("Ada")
-        def contains(name: String): Future[Boolean] =
-            // Emulation of DB call
-            Future.successful(allowedNames(name))
-    }
-}
-
 trait KindCustomizationDslFixture extends KindCustomizationDomainFixture {
     import dupin.all._
     import scala.concurrent.Future
@@ -24,7 +13,7 @@ trait KindCustomizationDslFixture extends KindCustomizationDomainFixture {
     def FutureValidator[R] = Validator[String, R, Future]
 }
 
-trait KindCustomizationValidatorFixture extends KindCustomizationDslFixture {
+trait KindCustomizationValidatorFixture extends KindCustomizationDslFixture with ReadmeDomainFixture {
     import cats.implicits._
     import scala.concurrent.ExecutionContext.Implicits.global
     import scala.concurrent.Future
