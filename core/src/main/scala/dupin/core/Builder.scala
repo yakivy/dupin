@@ -12,7 +12,7 @@ class Builder[L, R, F[_]] {
     def success(implicit A: Applicative[F]): Validator[L, R, F] = Validator(a => A.pure(Success(a)))
 
     def fail(m: MessageBuilder[R, L])(implicit A: Applicative[F]): Validator[L, R, F] =
-        Validator(a => A.pure(Fail(NonEmptyList(a, Nil))))
+        Validator(a => A.pure(Fail(NonEmptyList(m, Nil))))
 
     def root(f: R => F[Boolean], m: MessageBuilder[R, L])(implicit F: Functor[F]): Validator[L, R, F] =
         Validator(a => F.map(f(a))(if (_) Success(a) else Fail(NonEmptyList(m, Nil))))
