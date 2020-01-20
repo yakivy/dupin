@@ -1,5 +1,6 @@
 package dupin.core
 
+import cats.Applicative
 import cats.Functor
 import cats.data.NonEmptyList
 import dupin.MessageBuilder
@@ -8,6 +9,11 @@ import dupin.core.Builder.PartiallyAppliedPath
 import scala.language.experimental.macros
 
 class Builder[L, R, F[_]] {
+    def success(implicit A: Applicative[F]): Validator[L, R, F] = Validator(a => A.pure(Success(a)))
+
+    def fail(m: MessageBuilder[R, L])(implicit A: Applicative[F]): Validator[L, R, F] =
+        Validator(a => A.pure(Fail(NonEmptyList(a, Nil))))
+
     def root(f: R => F[Boolean], m: MessageBuilder[R, L])(implicit F: Functor[F]): Validator[L, R, F] =
         Validator(a => F.map(f(a))(if (_) Success(a) else Fail(NonEmptyList(m, Nil))))
 
