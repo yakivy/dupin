@@ -1,20 +1,20 @@
 package dupin.readme
 
-import cats.data.NonEmptyList
 import org.scalatest.WordSpec
 
 trait QuickStartValidatorFixture extends ReadmeDomainFixture {
     import dupin.all._
+    import cats.implicits._
 
     implicit val nameValidator = BaseValidator[Name](_.value.nonEmpty, _.path + " should be non empty")
 
     implicit val memberValidator = BaseValidator[Member]
-        .combineP(_.name)(implicitly)
+        .combineP(_.name)(nameValidator)
         .combinePR(_.age)(a => a > 18 && a < 40, _.path + " should be between 18 and 40")
 
     implicit val teamValidator = BaseValidator[Team]
-        .combineP(_.name)(implicitly)
-        .combineP(_.members)(implicitly)
+        .combineP(_.name)(nameValidator)
+        .combineP(_.members)(element(memberValidator))
         .combineR(_.members.size <= 8, _ => "team should be fed with two pizzas!")
 }
 

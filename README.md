@@ -10,11 +10,12 @@ Dupin is a minimal, idiomatic, customizable validation for Scala.
 
 ### Table of contents
 1. [Quick start](#quick-start)
+1. [Predefined validators](#predefined-validators)
 1. [Customization](#message-customization)
     1. [Message customization](#message-customization)
     1. [Kind customization](#kind-customization)
     1. [Custom validating package](#custom-validating-package)
-1. [Predefined validators](#predefined-validators)
+1. [Integration example](#integration-example)
 1. [Notes](#notes)
 
 ### Quick start
@@ -33,18 +34,17 @@ case class Team(name: Name, members: Seq[Member])
 Define some validators:
 ```scala
 import dupin.all._
+import cats.implicits._
 
-implicit val nameValidator = BaseValidator[Name](
-    _.value.nonEmpty, _.path + " should be non empty"
-)
+implicit val nameValidator = BaseValidator[Name](_.value.nonEmpty, _.path + " should be non empty")
 
 implicit val memberValidator = BaseValidator[Member]
-    .combineP(_.name)(implicitly)
-    .combinePR(_.age)(_ > 0, _.path + " should be positive")
+    .combineP(_.name)(nameValidator)
+    .combinePR(_.age)(a => a > 18 && a < 40, _.path + " should be between 18 and 40")
 
 implicit val teamValidator = BaseValidator[Team]
-    .combineP(_.name)(implicitly)
-    .combineP(_.members)(implicitly)
+    .combineP(_.name)(nameValidator)
+    .combineP(_.members)(element(memberValidator))
     .combineR(_.members.size <= 8, _ => "team should be fed with two pizzas!")
 ```
 Validate them all:
@@ -52,7 +52,7 @@ Validate them all:
 import dupin.all._
 
 val validTeam = Team(
-    Name("bears"),
+    Name("Bears"),
     List(
         Member(Name("Yakiv"), 26),
         Member(Name("Myroslav"), 31),
@@ -78,6 +78,28 @@ assert(c == List(
     "team should be fed with two pizzas!"
 ))
 ```
+
+### Predefined validators
+
+The more validators you have, the more logic can be reused without writing validators from the scratch. Let's write common validators for minimum and maximum `Int` value:
+```scala
+import dupin.all._
+
+def min(value: Int) = BaseValidator[Int](_ > value, _.path + " should be grater then " + value)
+def max(value: Int) = BaseValidator[Int](_ < value, _.path + " should be less then " + value)
+``` 
+And since validators can be combined, you can create validators from other validators:
+```scala
+import dupin.all._
+
+implicit val memberValidator = BaseValidator[Member].path(_.age)(min(18) && max(40))
+
+val invalidMember = Member(Name("Ada"), 0)
+val messages = invalidMember.validate.list
+
+assert(messages == List(".age should be grater then 18"))
+```
+You can find full list of validators that provided out of the box in `dupin.instances.DupinInstances`
 
 ### Message customization
 
@@ -107,7 +129,7 @@ implicit val nameValidator = I18nValidator[Name](_.value.nonEmpty, c => I18nMess
 ))
 
 implicit val memberValidator = I18nValidator[Member]
-    .combineP(_.name)(implicitly)
+    .combineP(_.name)(nameValidator)
     .combinePR(_.age)(a => a > 18 && a < 40, c => I18nMessage(
         c.path + " should be between 18 and 40",
         "validator.member.age",
@@ -170,7 +192,7 @@ implicit val nameValidator = FutureValidator[Name](
 )
 
 implicit val memberValidator = FutureValidator[Member]
-    .combineP(_.name)(implicitly)
+    .combineP(_.name)(nameValidator)
     .combinePR(_.age)(a => Future.successful(a > 18 && a < 40), _.path + " should be between 18 and 40")
 ```
 And validation result will look like:
@@ -228,26 +250,27 @@ val validName = Name("Ada")
 assert(Await.result(validName.isValid, Duration.Inf))
 ```
 
-### Predefined validators
-
-The more validators you have, the more logic can be reused without writing validators from the scratch. Let's write common validators for minimum and maximum `Int` value:
+### Integration example
+For example you are using play framework in your project, then instead of parsing dtos directly from `JsValue`, you can create own wrapper around it and inject validation logic there, like:
 ```scala
+import cats.data.NonEmptyList
 import dupin.all._
+import dupin.core.Success
+import play.api.libs.json.JsValue
+import play.api.libs.json.Reads
 
-def min(value: Int) = BaseValidator[Int](_ > value, _.path + " should be grater then " + value)
-def max(value: Int) = BaseValidator[Int](_ < value, _.path + " should be less then " + value)
-``` 
-And since validators can be combined, you can create validators from other validators:
-```scala
-import dupin.all._
-
-implicit val memberValidator = BaseValidator[Member].path(_.age)(min(18) && max(40))
-
-val invalidMember = Member(Name("Ada"), 0)
-val messages = invalidMember.validate.list
-
-assert(messages == List(".age should be grater then 18"))
+case class JsonContent(jsValue: JsValue) {
+    def as[A: Reads](
+        implicit validator: BaseValidator[A] = BaseValidator.success
+    ): Either[NonEmptyList[String], A] = {
+        jsValue.validate[A].asEither match {
+            case Right(value) => validator.validate(value).either
+            case Left(errors) => Left(NonEmptyList(errors.toString, Nil))
+        }
+    }
+}
 ```
+`= BaseValidator.success` - will allow you to successfully parse dtos that don't have validator
 
 ### Notes
 
