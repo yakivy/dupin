@@ -271,7 +271,3 @@ case class JsonContent(jsValue: JsValue) {
 }
 ```
 `= BaseValidator.success` - will allow you to successfully parse dtos that don't have validator
-
-### Notes
-
-Library is in active development and API might change.
