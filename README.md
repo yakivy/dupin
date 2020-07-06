@@ -9,6 +9,7 @@
 Dupin is a minimal, idiomatic, customizable validation for Scala.
 
 ### Table of contents
+1. [Motivation](#motivation)
 1. [Quick start](#quick-start)
 1. [Predefined validators](#predefined-validators)
 1. [Customization](#message-customization)
@@ -17,6 +18,13 @@ Dupin is a minimal, idiomatic, customizable validation for Scala.
     1. [Custom validating package](#custom-validating-package)
 1. [Integration example](#integration-example)
 1. [Notes](#notes)
+
+### Motivation
+
+You may find Dupin useful if you want to...
+- return something richer than `String` as validation message
+- use custom data kind for validation (`Future`, `IO`, etc...)
+- reuse validation parts across whole project
 
 ### Quick start
 Add dupin dependency to the build file, let's assume you are using sbt:
