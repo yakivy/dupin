@@ -30,7 +30,7 @@ You may find Dupin useful if you want to...
 Add dupin dependency to the build file, let's assume you are using sbt:
 ```scala
 libraryDependencies += Seq(
-  "com.github.yakivy" %% "dupin-core" % "0.1.2"
+  "com.github.yakivy" %% "dupin-core" % "0.1.3"
 )
 ```
 Describe the domain:
