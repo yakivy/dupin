@@ -5,8 +5,8 @@ import org.scalatest.WordSpec
 trait PredefinedValidatorsFixture {
     import dupin.all._
 
-    def min(value: Int) = BaseValidator[Int](_ > value, _.path + " should be grater then " + value)
-    def max(value: Int) = BaseValidator[Int](_ < value, _.path + " should be less then " + value)
+    def min(value: Int) = BaseValidator[Int].root(_ > value, _.path + " should be grater then " + value)
+    def max(value: Int) = BaseValidator[Int].root(_ < value, _.path + " should be less then " + value)
 }
 
 trait PredefinedValidatorsValidatingFixture extends PredefinedValidatorsFixture with ReadmeDomainFixture {

@@ -1,5 +1,6 @@
 package dupin
 
+import cats.Applicative
 import cats.instances.FutureInstances
 import dupin.instances.DupinInstances
 import dupin.readme.MessageCustomizationDomainFixture
@@ -10,5 +11,5 @@ package object custom
     extends DupinCoreDsl with DupinInstances with DupinSyntax
         with FutureInstances with MessageCustomizationDomainFixture {
     type CustomValidator[R] = Validator[I18nMessage, R, Future]
-    def CustomValidator[R] = Validator[I18nMessage, R, Future]
+    def CustomValidator[R](implicit A: Applicative[Future]) = Validator[I18nMessage, R, Future]
 }

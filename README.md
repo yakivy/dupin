@@ -44,7 +44,7 @@ Define some validators:
 import dupin.all._
 import cats.implicits._
 
-implicit val nameValidator = BaseValidator[Name](_.value.nonEmpty, _.path + " should be non empty")
+implicit val nameValidator = BaseValidator[Name].root(_.value.nonEmpty, _.path + " should be non empty")
 
 implicit val memberValidator = BaseValidator[Member]
     .combineP(_.name)(nameValidator)
@@ -93,8 +93,8 @@ The more validators you have, the more logic can be reused without writing valid
 ```scala
 import dupin.all._
 
-def min(value: Int) = BaseValidator[Int](_ > value, _.path + " should be grater then " + value)
-def max(value: Int) = BaseValidator[Int](_ < value, _.path + " should be less then " + value)
+def min(value: Int) = BaseValidator[Int].root(_ > value, _.path + " should be grater then " + value)
+def max(value: Int) = BaseValidator[Int].root(_ < value, _.path + " should be less then " + value)
 ``` 
 And since validators can be combined, you can create validators from other validators:
 ```scala
@@ -130,7 +130,7 @@ And start creating validators with custom messages:
 ```scala
 import dupin.all._
 
-implicit val nameValidator = I18nValidator[Name](_.value.nonEmpty, c => I18nMessage(
+implicit val nameValidator = I18nValidator[Name].root(_.value.nonEmpty, c => I18nMessage(
     c.path + " should be non empty",
     "validator.name.empty",
     List(c.path.toString())
@@ -180,11 +180,12 @@ class NameService {
 ```
 So to be able to handle checks that returns `Future[Boolean]`, you just need to define own validator type with builder:
 ```scala
+import cats.Applicative
 import dupin.all._
 import scala.concurrent.Future
 
 type FutureValidator[R] = Validator[String, R, Future]
-def FutureValidator[R] = Validator[String, R, Future]
+def FutureValidator[R](implicit A: Applicative[Future]) = Validator[String, R, Future]
 ``` 
 Then you can create validators with generic dsl (don't forget to import required type classes, as minimum `Functor[Future]`):
 ```scala
@@ -195,7 +196,7 @@ import scala.concurrent.Future
 
 val nameService = new NameService
 
-implicit val nameValidator = FutureValidator[Name](
+implicit val nameValidator = FutureValidator[Name].root(
     n => nameService.contains(n.value), _.path + " should be non empty"
 )
 
@@ -226,6 +227,7 @@ To avoid imports boilerplate and isolating all customizations you can define own
 ```scala
 package dupin
 
+import cats.Applicative
 import cats.instances.FutureInstances
 import dupin.instances.DupinInstances
 import dupin.syntax.DupinSyntax
@@ -235,7 +237,7 @@ package object custom
     extends DupinCoreDsl with DupinInstances with DupinSyntax
         with FutureInstances {
     type CustomValidator[R] = Validator[I18nMessage, R, Future]
-    def CustomValidator[R] = Validator[I18nMessage, R, Future]
+    def CustomValidator[R](implicit A: Applicative[Future]) = Validator[I18nMessage, R, Future]
 }
 ```
 Then you can start using own validator type with single import:

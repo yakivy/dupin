@@ -6,7 +6,7 @@ trait QuickStartValidatorFixture extends ReadmeDomainFixture {
     import dupin.all._
     import cats.implicits._
 
-    implicit val nameValidator = BaseValidator[Name](_.value.nonEmpty, _.path + " should be non empty")
+    implicit val nameValidator = BaseValidator[Name].root(_.value.nonEmpty, _.path + " should be non empty")
 
     implicit val memberValidator = BaseValidator[Member]
         .combineP(_.name)(nameValidator)

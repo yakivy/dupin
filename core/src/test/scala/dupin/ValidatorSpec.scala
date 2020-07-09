@@ -16,15 +16,13 @@ class ValidatorSpec extends WordSpec {
         "created from root" should {
             val c: OneFieldDataStructure => Boolean = _.value != "invalid string"
             val v1 = BaseValidator[OneFieldDataStructure].root(c, m)
-            val v2 = BaseValidator[OneFieldDataStructure].apply(c, m)
-            val v3 = BaseValidator[OneFieldDataStructure].combineR(c, m)
+            val v2 = BaseValidator[OneFieldDataStructure].combineR(c, m)
 
             "return success result" in {
                 val ds = OneFieldDataStructure("valid string")
                 val r = Success(ds)
                 assert(v1.validate(ds) == r)
                 assert(v2.validate(ds) == r)
-                assert(v3.validate(ds) == r)
             }
 
             "return fail result" in {
@@ -32,14 +30,13 @@ class ValidatorSpec extends WordSpec {
                 val r = Fail(NonEmptyList(". is invalid", Nil))
                 assert(v1.validate(ds) == r)
                 assert(v2.validate(ds) == r)
-                assert(v3.validate(ds) == r)
             }
         }
 
         val c: String => Boolean = _ != "invalid string"
         "created from explicit field path" should {
             val p = FieldPart("value") :: Root
-            val v = BaseValidator[OneFieldDataStructure].path(p, _.value)(Validator(c, m))
+            val v = BaseValidator[OneFieldDataStructure].path(p, _.value)(BaseValidator[String].root(c, m))
 
             "return success result" in {
                 val ds = OneFieldDataStructure("valid string")
@@ -55,8 +52,8 @@ class ValidatorSpec extends WordSpec {
         }
 
         "created from macros field path" should {
-            val v1 = BaseValidator[OneFieldDataStructure].path(_.value)(Validator(c, m))
-            val v2 = BaseValidator[OneFieldDataStructure].combineP(_.value)(Validator(c, m))
+            val v1 = BaseValidator[OneFieldDataStructure].path(_.value)(BaseValidator[String].root(c, m))
+            val v2 = BaseValidator[OneFieldDataStructure].combineP(_.value)(BaseValidator[String].root(c, m))
             val v3 = BaseValidator[OneFieldDataStructure].combinePR(_.value)(c, m)
 
             "return success result" in {
@@ -115,8 +112,8 @@ class ValidatorSpec extends WordSpec {
             val c1: String => Boolean = _ != "invalid string"
             val c2: Int => Boolean = _ != 0
             val v1 = BaseValidator[TwoFieldDataStructure]
-                .combineP(_.v1)(Validator(c1, m))
-                .combineP(_.v2)(Validator(c2, m))
+                .combineP(_.v1)(BaseValidator[String].root(c1, m))
+                .combineP(_.v2)(BaseValidator[Int].root(c2, m))
             val v2 = BaseValidator[TwoFieldDataStructure]
                 .combinePR(_.v1)(c1, m)
                 .combinePR(_.v2)(c2, m)
@@ -160,7 +157,7 @@ class ValidatorSpec extends WordSpec {
             val c1: String => Boolean = _ != "invalid string"
             val c2: Int => Boolean = _ != 0
             val vi = BaseValidator[SecondLayerDataStructure]
-                .combineP(_.v)(Validator(c1, m))
+                .combineP(_.v)(BaseValidator[String].root(c1, m))
             val v = BaseValidator[FirstLayerDataStructure]
                 .combineP(_.v1)(vi)
                 .combinePR(_.v2)(c2, m)

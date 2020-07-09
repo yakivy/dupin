@@ -6,11 +6,12 @@ import scala.concurrent.duration.Duration
 
 
 trait KindCustomizationDslFixture extends KindCustomizationDomainFixture {
+    import cats.Applicative
     import dupin.all._
     import scala.concurrent.Future
 
     type FutureValidator[R] = Validator[String, R, Future]
-    def FutureValidator[R] = Validator[String, R, Future]
+    def FutureValidator[R](implicit A: Applicative[Future]) = Validator[String, R, Future]
 }
 
 trait KindCustomizationValidatorFixture extends KindCustomizationDslFixture with ReadmeDomainFixture {
@@ -20,7 +21,7 @@ trait KindCustomizationValidatorFixture extends KindCustomizationDslFixture with
 
     val nameService = new NameService
 
-    implicit val nameValidator = FutureValidator[Name](
+    implicit val nameValidator = FutureValidator[Name].root(
         n => nameService.contains(n.value), _.path + " should be non empty"
     )
 

@@ -11,7 +11,7 @@ trait MessageCustomizationDslFixture extends MessageCustomizationDomainFixture {
 
 trait MessageCustomizationValidatorFixture extends MessageCustomizationDslFixture {
 
-    implicit val nameValidator = I18nValidator[Name](_.value.nonEmpty, c => I18nMessage(
+    implicit val nameValidator = I18nValidator[Name].root(_.value.nonEmpty, c => I18nMessage(
         c.path + " should be non empty",
         "validator.name.empty",
         List(c.path.toString())
