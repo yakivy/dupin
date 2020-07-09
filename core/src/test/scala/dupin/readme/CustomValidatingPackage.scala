@@ -12,7 +12,7 @@ class CustomValidatingPackage extends WordSpec with KindCustomizationDomainFixtu
 
             val nameService = new NameService
 
-            implicit val nameValidator = CustomValidator[Name](
+            implicit val nameValidator = CustomValidator[Name].root(
                 n => nameService.contains(n.value), c => I18nMessage(
                     c.path + " should be non empty",
                     "validator.name.empty",
