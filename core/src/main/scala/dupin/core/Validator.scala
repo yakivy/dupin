@@ -39,16 +39,12 @@ class Validator[L, R, F[_]](val f: R => F[Result[MessageBuilder[R, L], R]])(impl
     /**
      * Alias for [[combine]] with `$` operator priority
      */
-    def &&(
-        v: Validator[L, R, F]
-    ): Validator[L, R, F] = combine(v)
+    def &&(v: Validator[L, R, F]): Validator[L, R, F] = combine(v)
 
     /**
      * Alias for [[orElse]] with `|` operator priority
      */
-    def ||(
-        v: Validator[L, R, F]
-    ): Validator[L, R, F] = orElse(v)
+    def ||(v: Validator[L, R, F]): Validator[L, R, F] = orElse(v)
 
     /**
      * Combines with root validator passed by separate arguments.
