@@ -1,8 +1,10 @@
 package dupin.readme
 
+import dupin.readme.MessageCustomizationDomainFixture._
+import dupin.readme.ReadmeDomainFixture._
 import org.scalatest.WordSpec
 
-trait MessageCustomizationDslFixture extends MessageCustomizationDomainFixture {
+trait MessageCustomizationDslFixture {
     import dupin.all._
 
     type I18nValidator[R] = Validator[I18nMessage, R, cats.Id]

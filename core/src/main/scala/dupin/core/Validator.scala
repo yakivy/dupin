@@ -78,6 +78,12 @@ class Validator[L, R, F[_]](val f: R => F[Result[MessageBuilder[R, L], R]])(impl
      */
     def combinePI[RR](f: R => RR)(implicit v: Validator[L, RR, F]): Validator[L, R, F] =
         macro ValidatorMacro.combinePIImpl[L, R, F, RR]
+
+    /**
+     * Combines with implicit validators for all fields that have accessors using macros generated path
+     */
+    def combineD: Validator[L, R, F] =
+        macro ValidatorMacro.combineDImpl[L, R, F]
 }
 
 /**
@@ -103,23 +109,38 @@ case class SuccessValidator[L, R, F[_]]()(implicit A: Applicative[F])
     def fail(m: MessageBuilder[R, L]): Validator[L, R, F] = FailValidator(m)
 
     /**
-     * Creates a root validator from given arguments.
+     * Creates a root validator from arguments from given arguments.
      * Alias for [[combineR]]
      */
     def root(f: R => F[Boolean], m: MessageBuilder[R, L]): Validator[L, R, F] = combineR(f, m)
 
     /**
-     * Creates a field validator using explicit path.
+     * Creates a field validator from root validator using explicit path.
      * Alias for [[combineP(path: Path, f: R => RR)(v: Validator[L, RR, F])]]
      */
     def path[RR](p: Path, f: R => RR)(v: Validator[L, RR, F]): Validator[L, R, F] = combineP(p, f)(v)
 
     /**
-     * Creates a field validator using macros generated path.
+     * Creates a field validator from root validator using macros generated path.
      * Alias for [[combineP(f: R => RR)]]
      */
     def path[RR](f: R => RR): PartiallyAppliedCombineP[L, R, F, RR] =
         macro ValidatorMacro.combinePImpl[L, R, F, RR]
+
+    /**
+     * Creates a field validator from root validator passed as separate arguments using macros generated path.
+     * Alias for [[combinePR]]
+     */
+    def pathR[RR](f: R => RR): PartiallyAppliedCombinePR[L, R, F, RR] =
+        macro ValidatorMacro.combinePRImpl[L, R, F, RR]
+
+    /**
+     * Creates a field validator from implicit validators for all fields that have accessors
+     * using macros generated path.
+     * Alias for [[combineD]]
+     */
+    def derive: Validator[L, R, F] =
+        macro ValidatorMacro.combineDImpl[L, R, F]
 }
 
 case class FailValidator[L, R, F[_]](m: MessageBuilder[R, L])(implicit A: Applicative[F])

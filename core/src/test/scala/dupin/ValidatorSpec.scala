@@ -166,11 +166,11 @@ class ValidatorSpec extends WordSpec {
         case class FirstLayerDataStructure(v1: SecondLayerDataStructure, v2: Int)
         val m: BaseMessageBuilder[Any] = _.path + " is invalid"
 
+        val c1: String => Boolean = _ != "invalid string"
+        val c2: Int => Boolean = _ != 0
+        implicit val vi1 = BaseValidator[SecondLayerDataStructure].pathR(_.v)(c1, m)
+
         "created from field path" should {
-            val c1: String => Boolean = _ != "invalid string"
-            val c2: Int => Boolean = _ != 0
-            implicit val vi = BaseValidator[SecondLayerDataStructure]
-                .combineP(_.v)(BaseValidator[String].root(c1, m))
             val v = BaseValidator[FirstLayerDataStructure]
                 .combinePI(_.v1)
                 .combinePR(_.v2)(c2, m)
@@ -197,6 +197,38 @@ class ValidatorSpec extends WordSpec {
                 val ds = FirstLayerDataStructure(SecondLayerDataStructure("invalid string"), 0)
                 val r = Fail(NonEmptyList(".v1.v is invalid", ".v2 is invalid" :: Nil))
                 assert(v.validate(ds) == r)
+            }
+        }
+
+        "derived from validator type" should {
+            implicit val vi2 = BaseValidator[Int].root(c2, m)
+
+            val v1 = BaseValidator[FirstLayerDataStructure].derive
+            //scala bug can't use them in same compilation unit
+            //val v2 = BaseValidator[FirstLayerDataStructure].combineD
+
+            "return success result with two successful checks" in {
+                val ds = FirstLayerDataStructure(SecondLayerDataStructure("validdd string"), 1)
+                val r = Success(ds)
+                assert(v1.validate(ds) == r)
+            }
+
+            "return fail result with first fail check" in {
+                val ds = FirstLayerDataStructure(SecondLayerDataStructure("invalid string"), 1)
+                val r = Fail(NonEmptyList(".v1.v is invalid", Nil))
+                assert(v1.validate(ds) == r)
+            }
+
+            "return fail result with second fail check" in {
+                val ds = FirstLayerDataStructure(SecondLayerDataStructure("valid string"), 0)
+                val r = Fail(NonEmptyList(".v2 is invalid", Nil))
+                assert(v1.validate(ds) == r)
+            }
+
+            "return fail result with two fail checks" in {
+                val ds = FirstLayerDataStructure(SecondLayerDataStructure("invalid string"), 0)
+                val r = Fail(NonEmptyList(".v1.v is invalid", ".v2 is invalid" :: Nil))
+                assert(v1.validate(ds) == r)
             }
         }
     }

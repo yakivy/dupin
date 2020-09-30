@@ -1,8 +1,9 @@
 package dupin.readme
 
 import org.scalatest.WordSpec
+import dupin.readme.ReadmeDomainFixture._
 
-trait QuickStartValidatorFixture extends ReadmeDomainFixture {
+trait QuickStartValidatorFixture {
     import dupin.all._
     import cats.implicits._
 
@@ -32,7 +33,7 @@ trait QuickStartValidatingFixture extends QuickStartValidatorFixture {
 
     val invalidTeam = Team(
         Name(""),
-        Member(Name(""), -1) :: (1 to 10).map(_ => Member(Name("Valid name"), 20)).toList
+        Member(Name(""), 0) :: (1 to 10).map(_ => Member(Name("Valid name"), 20)).toList
     )
 
     val a = validTeam.validate.either

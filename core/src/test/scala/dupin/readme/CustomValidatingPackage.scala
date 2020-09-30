@@ -1,5 +1,7 @@
 package dupin.readme
 
+import dupin.readme.MessageCustomizationDomainFixture._
+import dupin.readme.ReadmeDomainFixture._
 import org.scalatest.WordSpec
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration

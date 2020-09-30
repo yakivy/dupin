@@ -1,6 +1,6 @@
 package dupin.readme
 
-trait MessageCustomizationDomainFixture extends ReadmeDomainFixture {
+object MessageCustomizationDomainFixture {
     case class I18nMessage(
         description: String,
         key: String,

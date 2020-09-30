@@ -1,9 +1,9 @@
 package dupin.readme
 
+import dupin.readme.ReadmeDomainFixture._
 import org.scalatest.WordSpec
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-
 
 trait KindCustomizationDslFixture extends KindCustomizationDomainFixture {
     import cats.Applicative
@@ -14,7 +14,7 @@ trait KindCustomizationDslFixture extends KindCustomizationDomainFixture {
     def FutureValidator[R](implicit A: Applicative[Future]) = Validator[String, R, Future]
 }
 
-trait KindCustomizationValidatorFixture extends KindCustomizationDslFixture with ReadmeDomainFixture {
+trait KindCustomizationValidatorFixture extends KindCustomizationDslFixture {
     import cats.implicits._
     import scala.concurrent.ExecutionContext.Implicits.global
     import scala.concurrent.Future

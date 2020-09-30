@@ -11,6 +11,7 @@ Dupin is a minimal, idiomatic, customizable validation for Scala.
 ### Table of contents
 1. [Motivation](#motivation)
 1. [Quick start](#quick-start)
+1. [Derivation](#derivation)
 1. [Predefined validators](#predefined-validators)
 1. [Customization](#message-customization)
     1. [Message customization](#message-customization)
@@ -71,7 +72,7 @@ val validTeam = Team(
 
 val invalidTeam = Team(
     Name(""),
-    Member(Name(""), -1) :: (1 to 10).map(_ => Member(Name("valid name"), 20)).toList
+    Member(Name(""), 0) :: (1 to 10).map(_ => Member(Name("valid name"), 20)).toList
 )
 
 val a = validTeam.validate.either
@@ -88,14 +89,37 @@ assert(c == List(
 ))
 ```
 
+### Derivation
+If you are a fun of value classes or self descriptive types, validators can be easily derived:
+```scala
+implicit val nameValidator = BaseValidator[Name].root(_.value.nonEmpty, _.path + " should be non empty")
+implicit val ageValidator = BaseValidator[Int].root(a => a > 18 && a < 40, _.path + " should be between 18 and 40")
+
+implicit val memberValidator = BaseValidator[Member].derive
+```
+Validation messages will look like:
+```scala
+val validMember = Member(Name("Yakiv"), 27)
+val invalidMember = Member(Name(""), 0)
+
+val validationResult = validMember.isValid
+val messages = invalidMember.validate.list
+
+assert(validationResult)
+assert(messages == List(
+    ".name should be non empty",
+    ".age should be between 18 and 40",
+))
+```
+
 ### Predefined validators
 
 The more validators you have, the more logic can be reused without writing validators from the scratch. Let's write common validators for minimum and maximum `Int` value:
 ```scala
 import dupin.all._
 
-def min(value: Int) = BaseValidator[Int].root(_ > value, _.path + " should be grater then " + value)
-def max(value: Int) = BaseValidator[Int].root(_ < value, _.path + " should be less then " + value)
+def min(value: Int) = BaseValidator[Int].root(_ > value, _.path + " should be grater than " + value)
+def max(value: Int) = BaseValidator[Int].root(_ < value, _.path + " should be less than " + value)
 ``` 
 And since validators can be combined, you can create validators from other validators:
 ```scala
@@ -106,7 +130,7 @@ implicit val memberValidator = BaseValidator[Member].path(_.age)(min(18) && max(
 val invalidMember = Member(Name("Ada"), 0)
 val messages = invalidMember.validate.list
 
-assert(messages == List(".age should be grater then 18"))
+assert(messages == List(".age should be grater than 18"))
 ```
 You can find full list of validators that provided out of the box in `dupin.instances.DupinInstances`
 
@@ -145,7 +169,7 @@ implicit val memberValidator = I18nValidator[Member]
         List(c.path.toString())
     ))
 ```
-Then validation messages will look like:
+Validation messages will look like:
 ```scala
 import dupin.all._
 
@@ -205,7 +229,7 @@ implicit val memberValidator = FutureValidator[Member]
     .combinePI(_.name)
     .combinePR(_.age)(a => Future.successful(a > 18 && a < 40), _.path + " should be between 18 and 40")
 ```
-And validation result will look like:
+Validation result will look like:
 ```scala
 import cats.data.NonEmptyList
 import cats.implicits._

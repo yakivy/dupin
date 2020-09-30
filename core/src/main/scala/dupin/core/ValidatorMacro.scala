@@ -49,4 +49,19 @@ object ValidatorMacro {
             case a => c.abort(c.enclosingPosition, s"Unable to create path from $a")
         }
     }
+
+    def combineDImpl[L, R, F[_]](
+        c: blackbox.Context)(implicit LT: c.WeakTypeTag[L], RT: c.WeakTypeTag[R], FT: c.WeakTypeTag[F[_]]
+    ): c.Expr[Validator[L, R, F]] = {
+        import c.universe._
+        c.Expr(RT.tpe.members.sorted.collect {
+            case m: MethodSymbol if m.isParamAccessor => m
+        }.foldLeft(c.prefix.tree) { case (t, m) => q"""
+                $t.combineP(
+                    _root_.dupin.core.Root.::(_root_.dupin.core.FieldPart(${m.name.toString})),
+                    _.${m.name})(
+                    implicitly[_root_.dupin.core.Validator[$LT, ${m.returnType}, $FT]]
+                )
+        """})
+    }
 }
