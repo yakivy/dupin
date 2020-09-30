@@ -52,7 +52,7 @@ implicit val memberValidator = BaseValidator[Member]
     .combinePR(_.age)(a => a > 18 && a < 40, _.path + " should be between 18 and 40")
 
 implicit val teamValidator = BaseValidator[Team]
-    .combineP(_.name)(nameValidator)
+    .combinePI(_.name)
     .combineP(_.members)(element(memberValidator))
     .combineR(_.members.size <= 8, _ => "team should be fed with two pizzas!")
 ```
@@ -138,7 +138,7 @@ implicit val nameValidator = I18nValidator[Name].root(_.value.nonEmpty, c => I18
 ))
 
 implicit val memberValidator = I18nValidator[Member]
-    .combineP(_.name)(nameValidator)
+    .combinePI(_.name)
     .combinePR(_.age)(a => a > 18 && a < 40, c => I18nMessage(
         c.path + " should be between 18 and 40",
         "validator.member.age",
@@ -202,7 +202,7 @@ implicit val nameValidator = FutureValidator[Name].root(
 )
 
 implicit val memberValidator = FutureValidator[Member]
-    .combineP(_.name)(nameValidator)
+    .combinePI(_.name)
     .combinePR(_.age)(a => Future.successful(a > 18 && a < 40), _.path + " should be between 18 and 40")
 ```
 And validation result will look like:

@@ -18,7 +18,7 @@ trait MessageCustomizationValidatorFixture extends MessageCustomizationDslFixtur
     ))
 
     implicit val memberValidator = I18nValidator[Member]
-        .combineP(_.name)(implicitly)
+        .combinePI(_.name)
         .combinePR(_.age)(a => a > 18 && a < 40, c => I18nMessage(
             c.path + " should be between 18 and 40",
             "validator.member.age",

@@ -26,7 +26,7 @@ trait KindCustomizationValidatorFixture extends KindCustomizationDslFixture with
     )
 
     implicit val memberValidator = FutureValidator[Member]
-        .combineP(_.name)(nameValidator)
+        .combinePI(_.name)
         .combinePR(_.age)(a => Future.successful(a > 18 && a < 40), _.path + " should be between 18 and 40")
 }
 

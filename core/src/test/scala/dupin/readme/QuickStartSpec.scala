@@ -13,7 +13,7 @@ trait QuickStartValidatorFixture extends ReadmeDomainFixture {
         .combinePR(_.age)(a => a > 18 && a < 40, _.path + " should be between 18 and 40")
 
     implicit val teamValidator = BaseValidator[Team]
-        .combineP(_.name)(nameValidator)
+        .combinePI(_.name)(nameValidator)
         .combineP(_.members)(element(memberValidator))
         .combineR(_.members.size <= 8, _ => "team should be fed with two pizzas!")
 }
