@@ -28,7 +28,7 @@ class DerivationSpec extends WordSpec with DerivationValidatingFixture {
             assert(validationResult)
             assert(messages == List(
                 ".name should be non empty",
-                ".age should be between 18 and 40",
+                ".age should be between 18 and 40"
             ))
         }
     }
