@@ -31,7 +31,7 @@ You may find Dupin useful if you want to...
 Add dupin dependency to the build file, let's assume you are using sbt:
 ```scala
 libraryDependencies += Seq(
-  "com.github.yakivy" %% "dupin-core" % "0.1.3"
+  "com.github.yakivy" %% "dupin-core" % "0.1.4"
 )
 ```
 Describe the domain:
@@ -92,8 +92,10 @@ assert(c == List(
 ### Derivation
 If you are a fun of value classes or self descriptive types, validators can be easily derived:
 ```scala
-implicit val nameValidator = BaseValidator[Name].root(_.value.nonEmpty, _.path + " should be non empty")
-implicit val ageValidator = BaseValidator[Int].root(a => a > 18 && a < 40, _.path + " should be between 18 and 40")
+implicit val nameValidator = BaseValidator[Name]
+    .root(_.value.nonEmpty, _.path + " should be non empty")
+implicit val ageValidator = BaseValidator[Int]
+    .root(a => a > 18 && a < 40, _.path + " should be between 18 and 40")
 
 implicit val memberValidator = BaseValidator[Member].derive
 ```
