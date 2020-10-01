@@ -90,7 +90,7 @@ assert(c == List(
 ```
 
 ### Derivation
-If you are a fun of value classes or self descriptive types, validators can be easily derived:
+If you are a fan of value classes or self descriptive types, validators can be easily derived:
 ```scala
 implicit val nameValidator = BaseValidator[Name]
     .root(_.value.nonEmpty, _.path + " should be non empty")
@@ -120,7 +120,7 @@ The more validators you have, the more logic can be reused without writing valid
 ```scala
 import dupin.all._
 
-def min(value: Int) = BaseValidator[Int].root(_ > value, _.path + " should be grater than " + value)
+def min(value: Int) = BaseValidator[Int].root(_ > value, _.path + " should be greater than " + value)
 def max(value: Int) = BaseValidator[Int].root(_ < value, _.path + " should be less than " + value)
 ``` 
 And since validators can be combined, you can create validators from other validators:
@@ -132,7 +132,7 @@ implicit val memberValidator = BaseValidator[Member].path(_.age)(min(18) && max(
 val invalidMember = Member(Name("Ada"), 0)
 val messages = invalidMember.validate.list
 
-assert(messages == List(".age should be grater than 18"))
+assert(messages == List(".age should be greater than 18"))
 ```
 You can find full list of validators that provided out of the box in `dupin.instances.DupinInstances`
 
@@ -205,7 +205,7 @@ class NameService {
         Future.successful(allowedNames(name))
 }
 ```
-So to be able to handle checks that returns `Future[Boolean]`, you just need to define own validator type with builder:
+So to be able to handle checks that returns `Future[Boolean]`, you just need to define your own validator type with builder:
 ```scala
 import cats.Applicative
 import dupin.all._
@@ -250,7 +250,7 @@ assert(Await.result(messages, Duration.Inf) == Left(NonEmptyList.of(
 
 ### Custom validating package
 
-To avoid imports boilerplate and isolating all customizations you can define own dupin package:
+To avoid imports boilerplate and isolating all customizations you can define your own dupin package:
 ```scala
 package dupin
 
@@ -267,7 +267,7 @@ package object custom
     def CustomValidator[R](implicit A: Applicative[Future]) = Validator[I18nMessage, R, Future]
 }
 ```
-Then you can start using own validator type with single import:
+Then you can start using your own validator type with single import:
 ```scala
 import dupin.custom._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -288,7 +288,7 @@ assert(Await.result(validName.isValid, Duration.Inf))
 ```
 
 ### Integration example
-For example you are using play framework in your project, then instead of parsing dtos directly from `JsValue`, you can create own wrapper around it and inject validation logic there, like:
+For example you are using play framework in your project, then instead of parsing dtos directly from `JsValue`, you can create your own wrapper around it and inject validation logic there, like:
 ```scala
 import cats.data.NonEmptyList
 import dupin.all._
@@ -307,4 +307,4 @@ case class JsonContent(jsValue: JsValue) {
     }
 }
 ```
-`= BaseValidator.success` - will allow you to successfully parse dtos that don't have validator
+`= BaseValidator.success` - will allow you to successfully parse dtos that don't have validator.
