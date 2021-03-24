@@ -15,7 +15,9 @@ class Validator[L, R, F[_]](val f: R => F[ValidatedNec[MessageBuilder[R, L], R]]
 
     def recoverWith(
         ff: NonEmptyChain[MessageBuilder[R, L]] => ValidatedNec[MessageBuilder[R, L], R]
-    ): Validator[L, R, F] = new Validator(a => A.map(f(a))(_.handleErrorWith(ff)))
+    ): Validator[L, R, F] = new Validator(a => A.map(f(a))(
+        Validated.catsDataApplicativeErrorForValidated[NonEmptyChain[MessageBuilder[R, L]]].handleErrorWith(_)(ff)
+    ))
 
     /**
      * Recovers validation result with a failure. It is useful for replacing validation message.
