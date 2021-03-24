@@ -1,11 +1,10 @@
 package dupin
 
-import cats.data.NonEmptyList
+import cats.data.NonEmptyChain
+import cats.data.Validated
 import dupin.base._
-import dupin.core.Fail
 import dupin.core.FieldPart
 import dupin.core.Root
-import dupin.core.Success
 import org.scalatest.WordSpec
 
 class ValidatorSpec extends WordSpec {
@@ -20,14 +19,14 @@ class ValidatorSpec extends WordSpec {
 
             "return success result" in {
                 val ds = OneFieldDataStructure("valid string")
-                val r = Success(ds)
+                val r = Validated.validNec(ds)
                 assert(v1.validate(ds) == r)
                 assert(v2.validate(ds) == r)
             }
 
             "return fail result" in {
                 val ds = OneFieldDataStructure("invalid string")
-                val r = Fail(NonEmptyList(". is invalid", Nil))
+                val r = Validated.invalidNec(". is invalid")
                 assert(v1.validate(ds) == r)
                 assert(v2.validate(ds) == r)
             }
@@ -40,13 +39,13 @@ class ValidatorSpec extends WordSpec {
 
             "return success result" in {
                 val ds = OneFieldDataStructure("valid string")
-                val r = Success(ds)
+                val r = Validated.validNec(ds)
                 assert(v.validate(ds) == r)
             }
 
             "return fail result" in {
                 val ds = OneFieldDataStructure("invalid string")
-                val r = Fail(NonEmptyList(".value is invalid", Nil))
+                val r = Validated.invalidNec(".value is invalid")
                 assert(v.validate(ds) == r)
             }
         }
@@ -60,7 +59,7 @@ class ValidatorSpec extends WordSpec {
 
             "return success result" in {
                 val ds = OneFieldDataStructure("valid string")
-                val r = Success(ds)
+                val r = Validated.validNec(ds)
                 assert(v1.validate(ds) == r)
                 assert(v2.validate(ds) == r)
                 assert(v3.validate(ds) == r)
@@ -69,7 +68,7 @@ class ValidatorSpec extends WordSpec {
 
             "return fail result" in {
                 val ds = OneFieldDataStructure("invalid string")
-                val r = Fail(NonEmptyList(".value is invalid", Nil))
+                val r = Validated.invalidNec(".value is invalid")
                 assert(v1.validate(ds) == r)
                 assert(v2.validate(ds) == r)
                 assert(v3.validate(ds) == r)
@@ -89,25 +88,25 @@ class ValidatorSpec extends WordSpec {
 
             "return success result with two successful checks" in {
                 val ds = TwoFieldDataStructure("valid string", 1)
-                val r = Success(ds)
+                val r = Validated.validNec(ds)
                 assert(v.validate(ds) == r)
             }
 
             "return fail result with first fail check" in {
                 val ds = TwoFieldDataStructure("invalid string", 1)
-                val r = Fail(NonEmptyList(". is invalid", Nil))
+                val r = Validated.invalidNec(". is invalid")
                 assert(v.validate(ds) == r)
             }
 
             "return fail result with second fail check" in {
                 val ds = TwoFieldDataStructure("valid string", 0)
-                val r = Fail(NonEmptyList(". is invalid", Nil))
+                val r = Validated.invalidNec(". is invalid")
                 assert(v.validate(ds) == r)
             }
 
             "return fail result with two fail checks" in {
                 val ds = TwoFieldDataStructure("invalid string", 0)
-                val r = Fail(NonEmptyList(". is invalid", List(". is invalid")))
+                val r = Validated.Invalid(NonEmptyChain(". is invalid", ". is invalid"))
                 assert(v.validate(ds) == r)
             }
         }
@@ -129,7 +128,7 @@ class ValidatorSpec extends WordSpec {
 
             "return success result with two successful checks" in {
                 val ds = TwoFieldDataStructure("valid string", 1)
-                val r = Success(ds)
+                val r = Validated.validNec(ds)
                 assert(v1.validate(ds) == r)
                 assert(v2.validate(ds) == r)
                 assert(v3.validate(ds) == r)
@@ -137,7 +136,7 @@ class ValidatorSpec extends WordSpec {
 
             "return fail result with first fail check" in {
                 val ds = TwoFieldDataStructure("invalid string", 1)
-                val r = Fail(NonEmptyList(".v1 is invalid", Nil))
+                val r = Validated.invalidNec(".v1 is invalid")
                 assert(v1.validate(ds) == r)
                 assert(v2.validate(ds) == r)
                 assert(v3.validate(ds) == r)
@@ -145,7 +144,7 @@ class ValidatorSpec extends WordSpec {
 
             "return fail result with second fail check" in {
                 val ds = TwoFieldDataStructure("valid string", 0)
-                val r = Fail(NonEmptyList(".v2 is invalid", Nil))
+                val r = Validated.invalidNec(".v2 is invalid")
                 assert(v1.validate(ds) == r)
                 assert(v2.validate(ds) == r)
                 assert(v3.validate(ds) == r)
@@ -153,7 +152,7 @@ class ValidatorSpec extends WordSpec {
 
             "return fail result with two fail checks" in {
                 val ds = TwoFieldDataStructure("invalid string", 0)
-                val r = Fail(NonEmptyList(".v1 is invalid", List(".v2 is invalid")))
+                val r = Validated.Invalid(NonEmptyChain(".v1 is invalid", ".v2 is invalid"))
                 assert(v1.validate(ds) == r)
                 assert(v2.validate(ds) == r)
                 assert(v3.validate(ds) == r)
@@ -177,25 +176,25 @@ class ValidatorSpec extends WordSpec {
 
             "return success result with two successful checks" in {
                 val ds = FirstLayerDataStructure(SecondLayerDataStructure("valid string"), 1)
-                val r = Success(ds)
+                val r = Validated.validNec(ds)
                 assert(v.validate(ds) == r)
             }
 
             "return fail result with first fail check" in {
                 val ds = FirstLayerDataStructure(SecondLayerDataStructure("invalid string"), 1)
-                val r = Fail(NonEmptyList(".v1.v is invalid", Nil))
+                val r = Validated.invalidNec(".v1.v is invalid")
                 assert(v.validate(ds) == r)
             }
 
             "return fail result with second fail check" in {
                 val ds = FirstLayerDataStructure(SecondLayerDataStructure("valid string"), 0)
-                val r = Fail(NonEmptyList(".v2 is invalid", Nil))
+                val r = Validated.invalidNec(".v2 is invalid")
                 assert(v.validate(ds) == r)
             }
 
             "return fail result with two fail checks" in {
                 val ds = FirstLayerDataStructure(SecondLayerDataStructure("invalid string"), 0)
-                val r = Fail(NonEmptyList(".v1.v is invalid", ".v2 is invalid" :: Nil))
+                val r = Validated.Invalid(NonEmptyChain(".v1.v is invalid", ".v2 is invalid"))
                 assert(v.validate(ds) == r)
             }
         }
@@ -209,25 +208,25 @@ class ValidatorSpec extends WordSpec {
 
             "return success result with two successful checks" in {
                 val ds = FirstLayerDataStructure(SecondLayerDataStructure("validdd string"), 1)
-                val r = Success(ds)
+                val r = Validated.validNec(ds)
                 assert(v1.validate(ds) == r)
             }
 
             "return fail result with first fail check" in {
                 val ds = FirstLayerDataStructure(SecondLayerDataStructure("invalid string"), 1)
-                val r = Fail(NonEmptyList(".v1.v is invalid", Nil))
+                val r = Validated.invalidNec(".v1.v is invalid")
                 assert(v1.validate(ds) == r)
             }
 
             "return fail result with second fail check" in {
                 val ds = FirstLayerDataStructure(SecondLayerDataStructure("valid string"), 0)
-                val r = Fail(NonEmptyList(".v2 is invalid", Nil))
+                val r = Validated.invalidNec(".v2 is invalid")
                 assert(v1.validate(ds) == r)
             }
 
             "return fail result with two fail checks" in {
                 val ds = FirstLayerDataStructure(SecondLayerDataStructure("invalid string"), 0)
-                val r = Fail(NonEmptyList(".v1.v is invalid", ".v2 is invalid" :: Nil))
+                val r = Validated.Invalid(NonEmptyChain(".v1.v is invalid", ".v2 is invalid"))
                 assert(v1.validate(ds) == r)
             }
         }

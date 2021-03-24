@@ -1,5 +1,7 @@
 package dupin.readme
 
+import cats.data.NonEmptyChain
+import cats.data.Validated
 import dupin.readme.MessageCustomizationDomainFixture._
 import dupin.readme.ReadmeDomainFixture._
 import org.scalatest.WordSpec
@@ -28,17 +30,15 @@ trait MessageCustomizationValidatorFixture extends MessageCustomizationDslFixtur
         ))
 }
 
-trait MessageCustomizationValidatingFixture extends MessageCustomizationValidatorFixture {
-    import dupin.all._
-
-    val invalidMember = Member(Name(""), 0)
-    val messages: List[I18nMessage] = invalidMember.validate.list
-}
-
-class MessageCustomizationSpec extends WordSpec with MessageCustomizationValidatingFixture {
+class MessageCustomizationSpec extends WordSpec with MessageCustomizationValidatorFixture {
     "Message customization validators" should {
         "return custom messages" in {
-            assert(messages == List(
+            import dupin.all._
+
+            val invalidMember = Member(Name(""), 0)
+            val result = invalidMember.validate
+
+            assert(result == Validated.invalid(NonEmptyChain(
                 I18nMessage(
                     ".name should be non empty",
                     "validator.name.empty",
@@ -49,7 +49,7 @@ class MessageCustomizationSpec extends WordSpec with MessageCustomizationValidat
                     "validator.member.age",
                     List(".age")
                 )
-            ))
+            )))
         }
     }
 }

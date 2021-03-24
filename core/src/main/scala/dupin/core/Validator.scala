@@ -1,36 +1,38 @@
 package dupin.core
 
 import cats.Applicative
-import cats.data.NonEmptyList
-import cats.syntax.contravariantSemigroupal._
+import cats.data.NonEmptyChain
+import cats.data.Validated
+import cats.data.ValidatedNec
+import cats.implicits._
 import dupin.MessageBuilder
 import dupin.core.Validator._
 import scala.language.experimental.macros
 
-class Validator[L, R, F[_]](val f: R => F[Result[MessageBuilder[R, L], R]])(implicit A: Applicative[F]) {
-    def validate(a: R): F[Result[L, R]] =
-        A.map(f(a))(_.leftMap(_.apply(Context(Root, a))))
+class Validator[L, R, F[_]](val f: R => F[ValidatedNec[MessageBuilder[R, L], R]])(implicit A: Applicative[F]) {
+    def validate(a: R): F[ValidatedNec[L, R]] =
+        A.map(f(a))(_.leftMap(_.map(_.apply(Context(Root, a)))))
 
     def recoverWith(
-        ff: NonEmptyList[MessageBuilder[R, L]] => Result[MessageBuilder[R, L], R]
-    ): Validator[L, R, F] = new Validator(a => A.map(f(a))(_.recoverWith(ff)))
+        ff: NonEmptyChain[MessageBuilder[R, L]] => ValidatedNec[MessageBuilder[R, L], R]
+    ): Validator[L, R, F] = new Validator(a => A.map(f(a))(_.handleErrorWith(ff)))
 
     /**
      * Recovers validation result with a failure. It is useful for replacing validation message.
      */
     def recoverWithF(
         m1: MessageBuilder[R, L], ms: MessageBuilder[R, L]*
-    ): Validator[L, R, F] = recoverWith(_ => Fail(NonEmptyList(m1, ms.toList)))
+    ): Validator[L, R, F] = recoverWith(_ => Validated.Invalid(NonEmptyChain(m1, ms: _*)))
 
     def composeP[RR](p: Path, ff: RR => R): Validator[L, RR, F] = new Validator(
-        a => A.map(f(ff(a)))(_.bimap(_.compose(_.map(p, ff)), _ => a))
+        a => A.map(f(ff(a)))(_.bimap(_.map(_.compose(_.map(p, ff))), _ => a))
     )
 
     def compose[RR](f: RR => R): Validator[L, RR, F] = composeP(Root, f)
 
     def combine(
         v: Validator[L, R, F]
-    ): Validator[L, R, F] = new Validator(a => (this.f(a), v.f(a)).mapN(_ combine _))
+    ): Validator[L, R, F] = new Validator(a => (this.f(a), v.f(a)).tupled.map(_.tupled.map(_ => a)))
 
     def orElse(
         v: Validator[L, R, F]
@@ -52,7 +54,7 @@ class Validator[L, R, F[_]](val f: R => F[Result[MessageBuilder[R, L], R]])(impl
     def combineR(
         f: R => F[Boolean], m: MessageBuilder[R, L]
     ): Validator[L, R, F] = combine(
-        new Validator(a => A.map(f(a))(if (_) Success(a) else Fail(NonEmptyList(m, Nil))))
+        new Validator(a => A.map(f(a))(if (_) Validated.Valid(a) else Validated.invalidNec(m)))
     )
 
     /**
@@ -90,7 +92,7 @@ class Validator[L, R, F[_]](val f: R => F[Result[MessageBuilder[R, L], R]])(impl
  * It is often being used as a partially applied constructor for [[Validator]]
  */
 case class SuccessValidator[L, R, F[_]]()(implicit A: Applicative[F])
-    extends Validator[L, R, F](a => A.pure(Success(a))) {
+    extends Validator[L, R, F](a => A.pure(Validated.Valid(a))) {
 
     override def combine(v: Validator[L, R, F]): Validator[L, R, F] = v
 
@@ -144,7 +146,7 @@ case class SuccessValidator[L, R, F[_]]()(implicit A: Applicative[F])
 }
 
 case class FailValidator[L, R, F[_]](m: MessageBuilder[R, L])(implicit A: Applicative[F])
-    extends Validator[L, R, F](_ => A.pure(Fail(NonEmptyList(m, Nil))))
+    extends Validator[L, R, F](_ => A.pure(Validated.invalidNec(m)))
 
 object Validator {
     def apply[L, R, F[_]](implicit A: Applicative[F]): SuccessValidator[L, R, F] = SuccessValidator()

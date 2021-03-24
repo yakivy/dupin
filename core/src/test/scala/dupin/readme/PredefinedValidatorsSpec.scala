@@ -1,5 +1,6 @@
 package dupin.readme
 
+import cats.data.Validated
 import dupin.readme.ReadmeDomainFixture._
 import org.scalatest.WordSpec
 
@@ -10,19 +11,17 @@ trait PredefinedValidatorsFixture {
     def max(value: Int) = BaseValidator[Int].root(_ < value, _.path + " should be less than " + value)
 }
 
-trait PredefinedValidatorsValidatingFixture extends PredefinedValidatorsFixture {
-    import dupin.all._
-
-    implicit val memberValidator = BaseValidator[Member].path(_.age)(min(18) && max(40))
-
-    val invalidMember = Member(Name("Ada"), 0)
-    val messages = invalidMember.validate.list
-}
-
-class PredefinedValidatorsSpec extends WordSpec with PredefinedValidatorsValidatingFixture {
+class PredefinedValidatorsSpec extends WordSpec with PredefinedValidatorsFixture {
     "Predefined validators" should {
         "be correct" in {
-            assert(messages == List(".age should be grater than 18"))
+            import dupin.all._
+
+            implicit val memberValidator = BaseValidator[Member].path(_.age)(min(18) && max(40))
+
+            val invalidMember = Member(Name("Ada"), 0)
+            val result = invalidMember.validate
+
+            assert(result == Validated.invalidNec(".age should be grater than 18"))
         }
     }
 }

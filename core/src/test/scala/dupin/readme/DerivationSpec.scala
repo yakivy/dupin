@@ -1,5 +1,7 @@
 package dupin.readme
 
+import cats.data.NonEmptyChain
+import cats.data.Validated
 import dupin.readme.ReadmeDomainFixture._
 import org.scalatest.WordSpec
 
@@ -14,24 +16,22 @@ trait DerivationValidatorFixture {
     implicit val memberValidator = BaseValidator[Member].derive
 }
 
-trait DerivationValidatingFixture extends DerivationValidatorFixture {
-    import dupin.all._
-
-    val validMember = Member(Name("Yakiv"), 27)
-    val invalidMember = Member(Name(""), 0)
-
-    val validationResult = validMember.isValid
-    val messages = invalidMember.validate.list
-}
-
-class DerivationSpec extends WordSpec with DerivationValidatingFixture {
+class DerivationSpec extends WordSpec with DerivationValidatorFixture {
     "Derived validators" should {
         "be correct" in {
-            assert(validationResult)
-            assert(messages == List(
+            import dupin.all._
+
+            val validMember = Member(Name("Yakiv"), 27)
+            val invalidMember = Member(Name(""), 0)
+
+            val valid = validMember.isValid
+            val result = invalidMember.validate
+
+            assert(valid)
+            assert(result == Validated.invalid(NonEmptyChain(
                 ".name should be non empty",
                 ".age should be between 18 and 40"
-            ))
+            )))
         }
     }
 }

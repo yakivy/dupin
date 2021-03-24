@@ -1,8 +1,12 @@
 package dupin.readme
 
+import cats.data.NonEmptyChain
+import cats.data.Validated
+import cats.data.ValidatedNec
 import dupin.readme.ReadmeDomainFixture._
 import org.scalatest.WordSpec
 import scala.concurrent.Await
+import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 
 trait KindCustomizationDslFixture extends KindCustomizationDomainFixture {
@@ -30,23 +34,17 @@ trait KindCustomizationValidatorFixture extends KindCustomizationDslFixture {
         .combinePR(_.age)(a => Future.successful(a > 18 && a < 40), _.path + " should be between 18 and 40")
 }
 
-trait KindCustomizationValidatingFixture extends KindCustomizationValidatorFixture {
-    import cats.data.NonEmptyList
-    import cats.implicits._
-    import dupin.all._
-    import scala.concurrent.ExecutionContext.Implicits.global
-    import scala.concurrent.Future
-
-    val invalidMember = Member(Name(""), 0)
-    val messages: Future[Either[NonEmptyList[String], Member]] = invalidMember.validate.map(_.either)
-}
-
-class KindCustomizationSpec extends WordSpec with KindCustomizationValidatingFixture {
+class KindCustomizationSpec extends WordSpec with KindCustomizationValidatorFixture {
     "Kind customization validators" should {
         "return custom kind" in {
-            import cats.data.NonEmptyList
+            import cats.implicits._
+            import dupin.all._
+            import scala.concurrent.ExecutionContext.Implicits.global
 
-            assert(Await.result(messages, Duration.Inf) == Left(NonEmptyList.of(
+            val invalidMember = Member(Name(""), 0)
+            val result: Future[ValidatedNec[String, Member]] = invalidMember.validate
+
+            assert(Await.result(result, Duration.Inf) == Validated.invalid(NonEmptyChain(
                 ".name should be non empty",
                 ".age should be between 18 and 40"
             )))

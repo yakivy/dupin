@@ -4,6 +4,7 @@ import dupin.readme.MessageCustomizationDomainFixture._
 import dupin.readme.ReadmeDomainFixture._
 import org.scalatest.WordSpec
 import scala.concurrent.Await
+import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 
 class CustomValidatingPackage extends WordSpec with KindCustomizationDomainFixture {
@@ -23,8 +24,9 @@ class CustomValidatingPackage extends WordSpec with KindCustomizationDomainFixtu
             )
 
             val validName = Name("Ada")
+            val valid: Future[Boolean] = validName.isValid
 
-            assert(Await.result(validName.isValid, Duration.Inf))
+            assert(Await.result(valid, Duration.Inf))
         }
     }
 }

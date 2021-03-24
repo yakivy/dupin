@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 <a href="https://typelevel.org/cats/"><img src="https://typelevel.org/cats/img/cats-badge.svg" height="40px" align="right" alt="Cats friendly" /></a>
 
-Dupin is a minimal, idiomatic, customizable validation for Scala.
+Dupin is a minimal, idiomatic, customizable validation Scala library.
 
 ### Table of contents
 1. [Motivation](#motivation)
@@ -17,8 +17,6 @@ Dupin is a minimal, idiomatic, customizable validation for Scala.
     1. [Message customization](#message-customization)
     1. [Kind customization](#kind-customization)
     1. [Custom validating package](#custom-validating-package)
-1. [Integration example](#integration-example)
-1. [Notes](#notes)
 
 ### Motivation
 
@@ -75,23 +73,24 @@ val invalidTeam = Team(
     Member(Name(""), 0) :: (1 to 10).map(_ => Member(Name("valid name"), 20)).toList
 )
 
-val a = validTeam.validate.either
-val b = validTeam.isValid
-val c = invalidTeam.validate.list
+val valid = validTeam.isValid
+val result = invalidTeam.validate
 
-assert(a == Right(validTeam))
-assert(b)
-assert(c == List(
+assert(valid)
+assert(result == Validated.invalid(NonEmptyChain(
     ".name should be non empty",
     ".members.[0].name should be non empty",
     ".members.[0].age should be between 18 and 40",
     "team should be fed with two pizzas!"
-))
+)))
 ```
 
 ### Derivation
 If you are a fun of value classes or self descriptive types, validators can be easily derived:
 ```scala
+import dupin.all._
+import cats.implicits._
+
 implicit val nameValidator = BaseValidator[Name]
     .root(_.value.nonEmpty, _.path + " should be non empty")
 implicit val ageValidator = BaseValidator[Int]
@@ -101,17 +100,19 @@ implicit val memberValidator = BaseValidator[Member].derive
 ```
 Validation messages will look like:
 ```scala
+import dupin.all._
+
 val validMember = Member(Name("Yakiv"), 27)
 val invalidMember = Member(Name(""), 0)
 
-val validationResult = validMember.isValid
-val messages = invalidMember.validate.list
+val valid = validMember.isValid
+val result = invalidMember.validate
 
-assert(validationResult)
-assert(messages == List(
+assert(valid)
+assert(result == Validated.invalid(NonEmptyChain(
     ".name should be non empty",
-    ".age should be between 18 and 40",
-))
+    ".age should be between 18 and 40"
+)))
 ```
 
 ### Predefined validators
@@ -130,9 +131,9 @@ import dupin.all._
 implicit val memberValidator = BaseValidator[Member].path(_.age)(min(18) && max(40))
 
 val invalidMember = Member(Name("Ada"), 0)
-val messages = invalidMember.validate.list
+val result = invalidMember.validate
 
-assert(messages == List(".age should be grater than 18"))
+assert(result == Validated.invalidNec(".age should be grater than 18"))
 ```
 You can find full list of validators that provided out of the box in `dupin.instances.DupinInstances`
 
@@ -176,9 +177,9 @@ Validation messages will look like:
 import dupin.all._
 
 val invalidMember = Member(Name(""), 0)
-val messages: List[I18nMessage] = invalidMember.validate.list
+val result = invalidMember.validate
 
-assert(messages == List(
+assert(result == Validated.invalid(NonEmptyChain(
     I18nMessage(
         ".name should be non empty",
         "validator.name.empty",
@@ -189,7 +190,7 @@ assert(messages == List(
         "validator.member.age",
         List(".age")
     )
-))
+)))
 ```
 
 ### Kind customization
@@ -233,16 +234,14 @@ implicit val memberValidator = FutureValidator[Member]
 ```
 Validation result will look like:
 ```scala
-import cats.data.NonEmptyList
 import cats.implicits._
 import dupin.all._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 val invalidMember = Member(Name(""), 0)
-val messages: Future[Either[NonEmptyList[String], Member]] = invalidMember.validate.map(_.either)
+val result: Future[ValidatedNec[String, Member]] = invalidMember.validate
 
-assert(Await.result(messages, Duration.Inf) == Left(NonEmptyList.of(
+assert(Await.result(result, Duration.Inf) == Validated.invalid(NonEmptyChain(
     ".name should be non empty",
     ".age should be between 18 and 40"
 )))
@@ -274,7 +273,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 val nameService = new NameService
 
-implicit val nameValidator = CustomValidator[Name](
+implicit val nameValidator = CustomValidator[Name].root(
     n => nameService.contains(n.value), c => I18nMessage(
         c.path + " should be non empty",
         "validator.name.empty",
@@ -283,28 +282,7 @@ implicit val nameValidator = CustomValidator[Name](
 )
 
 val validName = Name("Ada")
+val valid: Future[Boolean] = validName.isValid
 
-assert(Await.result(validName.isValid, Duration.Inf))
+assert(Await.result(valid, Duration.Inf))
 ```
-
-### Integration example
-For example you are using play framework in your project, then instead of parsing dtos directly from `JsValue`, you can create own wrapper around it and inject validation logic there, like:
-```scala
-import cats.data.NonEmptyList
-import dupin.all._
-import dupin.core.Success
-import play.api.libs.json.JsValue
-import play.api.libs.json.Reads
-
-case class JsonContent(jsValue: JsValue) {
-    def as[A: Reads](
-        implicit validator: BaseValidator[A] = BaseValidator.success
-    ): Either[NonEmptyList[String], A] = {
-        jsValue.validate[A].asEither match {
-            case Right(value) => validator.validate(value).either
-            case Left(errors) => Left(NonEmptyList(errors.toString, Nil))
-        }
-    }
-}
-```
-`= BaseValidator.success` - will allow you to successfully parse dtos that don't have validator
