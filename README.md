@@ -86,7 +86,7 @@ assert(result == Validated.invalid(NonEmptyChain(
 ```
 
 ### Derivation
-If you are a fun of value classes or self descriptive types, validators can be easily derived:
+If you are a fan of value classes or self descriptive types, validators can be easily derived:
 ```scala
 import dupin.all._
 import cats.implicits._
@@ -121,7 +121,7 @@ The more validators you have, the more logic can be reused without writing valid
 ```scala
 import dupin.all._
 
-def min(value: Int) = BaseValidator[Int].root(_ > value, _.path + " should be grater than " + value)
+def min(value: Int) = BaseValidator[Int].root(_ > value, _.path + " should be greater than " + value)
 def max(value: Int) = BaseValidator[Int].root(_ < value, _.path + " should be less than " + value)
 ``` 
 And since validators can be combined, you can create validators from other validators:
@@ -133,7 +133,7 @@ implicit val memberValidator = BaseValidator[Member].path(_.age)(min(18) && max(
 val invalidMember = Member(Name("Ada"), 0)
 val result = invalidMember.validate
 
-assert(result == Validated.invalidNec(".age should be grater than 18"))
+assert(result == Validated.invalidNec(".age should be greater than 18"))
 ```
 You can find full list of validators that provided out of the box in `dupin.instances.DupinInstances`
 
@@ -206,7 +206,7 @@ class NameService {
         Future.successful(allowedNames(name))
 }
 ```
-So to be able to handle checks that returns `Future[Boolean]`, you just need to define own validator type with builder:
+So to be able to handle checks that returns `Future[Boolean]`, you just need to define your own validator type with builder:
 ```scala
 import cats.Applicative
 import dupin.all._
@@ -249,7 +249,7 @@ assert(Await.result(result, Duration.Inf) == Validated.invalid(NonEmptyChain(
 
 ### Custom validating package
 
-To avoid imports boilerplate and isolating all customizations you can define own dupin package:
+To avoid imports boilerplate and isolating all customizations you can define your own dupin package:
 ```scala
 package dupin
 
@@ -266,7 +266,7 @@ package object custom
     def CustomValidator[R](implicit A: Applicative[Future]) = Validator[I18nMessage, R, Future]
 }
 ```
-Then you can start using own validator type with single import:
+Then you can start using your own validator type with single import:
 ```scala
 import dupin.custom._
 import scala.concurrent.ExecutionContext.Implicits.global
