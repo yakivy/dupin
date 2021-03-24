@@ -32,7 +32,7 @@ class Validator[L, R, F[_]](val f: R => F[ValidatedNec[MessageBuilder[R, L], R]]
 
     def combine(
         v: Validator[L, R, F]
-    ): Validator[L, R, F] = new Validator(a => (this.f(a), v.f(a)).tupled.map(_.tupled.map(_ => a)))
+    ): Validator[L, R, F] = new Validator(a => (this.f(a), v.f(a)).mapN(_ product _).map(_.map(_ => a)))
 
     def orElse(
         v: Validator[L, R, F]
