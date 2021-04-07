@@ -11,7 +11,6 @@ Dupin is a minimal, idiomatic, customizable validation Scala library.
 ### Table of contents
 1. [Motivation](#motivation)
 1. [Quick start](#quick-start)
-1. [Derivation](#derivation)
 1. [Predefined validators](#predefined-validators)
 1. [Customization](#message-customization)
     1. [Message customization](#message-customization)
@@ -40,8 +39,8 @@ case class Team(name: Name, members: Seq[Member])
 ```
 Define some validators:
 ```scala
-import dupin.all._
 import cats.implicits._
+import dupin.base.all._
 
 implicit val nameValidator = BaseValidator[Name]
     .root(_.value.nonEmpty, _.path + " should be non empty")
@@ -50,14 +49,12 @@ implicit val memberValidator = BaseValidator[Member]
     .combineP(_.name)(nameValidator)
     .combinePR(_.age)(a => a > 18 && a < 40, _.path + " should be between 18 and 40")
 
-implicit val teamValidator = BaseValidator[Team]
-    .combinePI(_.name)
-    .combineP(_.members)(element(memberValidator))
+implicit val teamValidator = BaseValidator[Team].derive
     .combineR(_.members.size <= 8, _ => "team should be fed with two pizzas!")
 ```
 Validate them all:
 ```scala
-import dupin.all._
+import dupin.base.all._
 
 val validTeam = Team(
     Name("Bears"),
@@ -85,48 +82,18 @@ assert(result == Validated.invalid(NonEmptyChain(
 )))
 ```
 
-### Derivation
-If you are a fan of value classes or self descriptive types, validators can be easily derived:
-```scala
-import dupin.all._
-import cats.implicits._
-
-implicit val nameValidator = BaseValidator[Name]
-    .root(_.value.nonEmpty, _.path + " should be non empty")
-implicit val ageValidator = BaseValidator[Int]
-    .root(a => a > 18 && a < 40, _.path + " should be between 18 and 40")
-
-implicit val memberValidator = BaseValidator[Member].derive
-```
-Validation messages will look like:
-```scala
-import dupin.all._
-
-val validMember = Member(Name("Yakiv"), 27)
-val invalidMember = Member(Name(""), 0)
-
-val valid = validMember.isValid
-val result = invalidMember.validate
-
-assert(valid)
-assert(result == Validated.invalid(NonEmptyChain(
-    ".name should be non empty",
-    ".age should be between 18 and 40"
-)))
-```
-
 ### Predefined validators
 
-The more validators you have, the more logic can be reused without writing validators from the scratch. Let's write common validators for minimum and maximum `Int` value:
+The more validators you have, the more logic can be reused without writing validators from the scratch. Let's define common validators for minimum and maximum `Int` value:
 ```scala
-import dupin.all._
+import dupin.base.all._
 
 def min(value: Int) = BaseValidator[Int].root(_ > value, _.path + " should be greater than " + value)
 def max(value: Int) = BaseValidator[Int].root(_ < value, _.path + " should be less than " + value)
 ``` 
 And since validators can be combined, you can create validators from other validators:
 ```scala
-import dupin.all._
+import dupin.base.all._
 
 implicit val memberValidator = BaseValidator[Member].path(_.age)(min(18) && max(40))
 
@@ -149,15 +116,13 @@ case class I18nMessage(
 ```
 As `BaseValidator[R]` is just a type alias for `Validator[String, R, Id]`, you can define own validator type with builder:
 ```scala
-import dupin.all._
+import dupin._
 
 type I18nValidator[R] = Validator[I18nMessage, R, cats.Id]
 def I18nValidator[R] = Validator[I18nMessage, R, cats.Id]
 ```
 And start creating validators with custom messages:
 ```scala
-import dupin.all._
-
 implicit val nameValidator = I18nValidator[Name].root(_.value.nonEmpty, c => I18nMessage(
     c.path + " should be non empty",
     "validator.name.empty",
@@ -174,7 +139,7 @@ implicit val memberValidator = I18nValidator[Member]
 ```
 Validation messages will look like:
 ```scala
-import dupin.all._
+import dupin.syntax._
 
 val invalidMember = Member(Name(""), 0)
 val result = invalidMember.validate
@@ -209,7 +174,7 @@ class NameService {
 So to be able to handle checks that returns `Future[Boolean]`, you just need to define your own validator type with builder:
 ```scala
 import cats.Applicative
-import dupin.all._
+import dupin._
 import scala.concurrent.Future
 
 type FutureValidator[R] = Validator[String, R, Future]
@@ -218,7 +183,6 @@ def FutureValidator[R](implicit A: Applicative[Future]) = Validator[String, R, F
 Then you can create validators with generic dsl (don't forget to import required type classes, as minimum `Functor[Future]`):
 ```scala
 import cats.implicits._
-import dupin.all._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -234,9 +198,7 @@ implicit val memberValidator = FutureValidator[Member]
 ```
 Validation result will look like:
 ```scala
-import cats.implicits._
-import dupin.all._
-import scala.concurrent.ExecutionContext.Implicits.global
+import dupin.syntax._
 
 val invalidMember = Member(Name(""), 0)
 val result: Future[ValidatedNec[String, Member]] = invalidMember.validate
@@ -251,17 +213,12 @@ assert(Await.result(result, Duration.Inf) == Validated.invalid(NonEmptyChain(
 
 To avoid imports boilerplate and isolating all customizations you can define your own dupin package:
 ```scala
-package dupin
-
 import cats.Applicative
-import cats.instances.FutureInstances
-import dupin.instances.DupinInstances
+import dupin.readme.MessageCustomizationDomainFixture._
 import dupin.syntax.DupinSyntax
 import scala.concurrent.Future
 
-package object custom
-    extends DupinCoreDsl with DupinInstances with DupinSyntax
-        with FutureInstances {
+package object custom extends DupinCoreDsl with DupinSyntax {
     type CustomValidator[R] = Validator[I18nMessage, R, Future]
     def CustomValidator[R](implicit A: Applicative[Future]) = Validator[I18nMessage, R, Future]
 }
@@ -269,6 +226,7 @@ package object custom
 Then you can start using your own validator type with single import:
 ```scala
 import dupin.custom._
+import cats.implicits._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 val nameService = new NameService

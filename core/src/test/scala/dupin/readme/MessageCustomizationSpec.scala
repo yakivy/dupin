@@ -7,14 +7,13 @@ import dupin.readme.ReadmeDomainFixture._
 import org.scalatest.WordSpec
 
 trait MessageCustomizationDslFixture {
-    import dupin.all._
+    import dupin._
 
     type I18nValidator[R] = Validator[I18nMessage, R, cats.Id]
     def I18nValidator[R] = Validator[I18nMessage, R, cats.Id]
 }
 
 trait MessageCustomizationValidatorFixture extends MessageCustomizationDslFixture {
-
     implicit val nameValidator = I18nValidator[Name].root(_.value.nonEmpty, c => I18nMessage(
         c.path + " should be non empty",
         "validator.name.empty",
@@ -33,7 +32,7 @@ trait MessageCustomizationValidatorFixture extends MessageCustomizationDslFixtur
 class MessageCustomizationSpec extends WordSpec with MessageCustomizationValidatorFixture {
     "Message customization validators" should {
         "return custom messages" in {
-            import dupin.all._
+            import dupin.syntax._
 
             val invalidMember = Member(Name(""), 0)
             val result = invalidMember.validate

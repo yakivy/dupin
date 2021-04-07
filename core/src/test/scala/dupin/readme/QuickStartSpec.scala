@@ -6,25 +6,24 @@ import org.scalatest.WordSpec
 import dupin.readme.ReadmeDomainFixture._
 
 trait QuickStartValidatorFixture {
-    import dupin.all._
     import cats.implicits._
+    import dupin.base.all._
 
-    implicit val nameValidator = BaseValidator[Name].root(_.value.nonEmpty, _.path + " should be non empty")
+    implicit val nameValidator = BaseValidator[Name]
+        .root(_.value.nonEmpty, _.path + " should be non empty")
 
     implicit val memberValidator = BaseValidator[Member]
         .combineP(_.name)(nameValidator)
         .combinePR(_.age)(a => a > 18 && a < 40, _.path + " should be between 18 and 40")
 
-    implicit val teamValidator = BaseValidator[Team]
-        .combinePI(_.name)(nameValidator)
-        .combineP(_.members)(element(memberValidator))
+    implicit val teamValidator = BaseValidator[Team].derive
         .combineR(_.members.size <= 8, _ => "team should be fed with two pizzas!")
 }
 
 class QuickStartSpec extends WordSpec with QuickStartValidatorFixture {
     "Readme validators" should {
         "be correct" in {
-            import dupin.all._
+            import dupin.base.all._
 
             val validTeam = Team(
                 Name("bears"),

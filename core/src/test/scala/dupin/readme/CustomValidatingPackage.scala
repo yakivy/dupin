@@ -11,6 +11,7 @@ class CustomValidatingPackage extends WordSpec with KindCustomizationDomainFixtu
     "Custom validating package" should {
         "be correct" in {
             import dupin.custom._
+            import cats.implicits._
             import scala.concurrent.ExecutionContext.Implicits.global
 
             val nameService = new NameService

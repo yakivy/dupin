@@ -11,7 +11,7 @@ import scala.concurrent.duration.Duration
 
 trait KindCustomizationDslFixture extends KindCustomizationDomainFixture {
     import cats.Applicative
-    import dupin.all._
+    import dupin._
     import scala.concurrent.Future
 
     type FutureValidator[R] = Validator[String, R, Future]
@@ -37,9 +37,7 @@ trait KindCustomizationValidatorFixture extends KindCustomizationDslFixture {
 class KindCustomizationSpec extends WordSpec with KindCustomizationValidatorFixture {
     "Kind customization validators" should {
         "return custom kind" in {
-            import cats.implicits._
-            import dupin.all._
-            import scala.concurrent.ExecutionContext.Implicits.global
+            import dupin.syntax._
 
             val invalidMember = Member(Name(""), 0)
             val result: Future[ValidatedNec[String, Member]] = invalidMember.validate

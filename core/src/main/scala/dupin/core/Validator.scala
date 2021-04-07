@@ -6,7 +6,8 @@ import cats.data.Validated
 import cats.data.ValidatedNec
 import cats.implicits._
 import dupin.MessageBuilder
-import dupin.core.Validator._
+import dupin.core.Validator.PartiallyAppliedCombineP
+import dupin.core.Validator.PartiallyAppliedCombinePR
 import scala.language.experimental.macros
 
 class Validator[L, R, F[_]](val f: R => F[ValidatedNec[MessageBuilder[R, L], R]])(implicit A: Applicative[F]) {
@@ -113,7 +114,7 @@ case class SuccessValidator[L, R, F[_]]()(implicit A: Applicative[F])
     def fail(m: MessageBuilder[R, L]): Validator[L, R, F] = FailValidator(m)
 
     /**
-     * Creates a root validator from arguments from given arguments.
+     * Creates a root validator from given arguments.
      * Alias for [[combineR]]
      */
     def root(f: R => F[Boolean], m: MessageBuilder[R, L]): Validator[L, R, F] = combineR(f, m)
@@ -139,7 +140,7 @@ case class SuccessValidator[L, R, F[_]]()(implicit A: Applicative[F])
         macro ValidatorMacro.combinePRImpl[L, R, F, RR]
 
     /**
-     * Creates a field validator from implicit validators for all fields that have accessors
+     * Creates a root validator from implicit validators for all fields that have accessors
      * using macros generated path.
      * Alias for [[combineD]]
      */
@@ -150,7 +151,7 @@ case class SuccessValidator[L, R, F[_]]()(implicit A: Applicative[F])
 case class FailValidator[L, R, F[_]](m: MessageBuilder[R, L])(implicit A: Applicative[F])
     extends Validator[L, R, F](_ => A.pure(Validated.invalidNec(m)))
 
-object Validator {
+object Validator extends ValidatorInstances {
     def apply[L, R, F[_]](implicit A: Applicative[F]): SuccessValidator[L, R, F] = SuccessValidator()
 
     case class PartiallyAppliedCombineP[L, R, F[_], RR](iv: Validator[L, R, F], p: PathPart, f: R => RR) {
