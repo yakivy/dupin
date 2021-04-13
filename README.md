@@ -24,10 +24,11 @@ You may find Dupin useful if you...
 - use [cats](https://typelevel.org/cats/) and like their API style
 
 ### Quick start
-Add dupin dependency to the build file, let's assume you are using sbt:
+Add cats and dupin dependencies to the build file, let's assume you are using sbt:
 ```scala
 libraryDependencies += Seq(
-  "com.github.yakivy" %% "dupin-core" % "0.1.4"
+    "org.typelevel" %% "cats-core" % "2.0.0",
+    "com.github.yakivy" %% "dupin-core" % "0.1.4",
 )
 ```
 Describe the domain:

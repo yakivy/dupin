@@ -28,7 +28,7 @@ lazy val commonDependencies = Seq(
     libraryDependencies ++= Seq(
         "org.typelevel" %% "cats-core" % versions.cats % "test,provided",
         "org.scalatest" %% "scalatest" % versions.scalatest % "test",
-        "org.scala-lang" % "scala-reflect" % scalaVersion.value
+        "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided"
     )
 )
 
