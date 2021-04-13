@@ -6,6 +6,6 @@ import dupin.syntax.DupinSyntax
 import scala.concurrent.Future
 
 package object custom extends DupinCoreDsl with DupinSyntax {
-    type CustomValidator[R] = Validator[I18nMessage, R, Future]
-    def CustomValidator[R](implicit A: Applicative[Future]) = Validator[I18nMessage, R, Future]
+    type CustomValidator[A] = Validator[Future, I18nMessage, A]
+    def CustomValidator[A](implicit A: Applicative[Future]) = Validator[Future, I18nMessage, A]
 }

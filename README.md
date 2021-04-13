@@ -114,12 +114,13 @@ case class I18nMessage(
     params: List[String]
 )
 ```
-As `BaseValidator[R]` is just a type alias for `Validator[String, R, Id]`, you can define own validator type with builder:
+As `BaseValidator[A]` is just a type alias for `Validator[Id, String, A]`, you can define own validator type with builder:
+
 ```scala
 import dupin._
 
-type I18nValidator[R] = Validator[I18nMessage, R, cats.Id]
-def I18nValidator[R] = Validator[I18nMessage, R, cats.Id]
+type I18nValidator[A] = Validator[I18nMessage, A, cats.Id]
+def I18nValidator[A] = Validator[I18nMessage, A, cats.Id]
 ```
 And start creating validators with custom messages:
 ```scala
@@ -172,13 +173,14 @@ class NameService {
 }
 ```
 So to be able to handle checks that returns `Future[Boolean]`, you just need to define your own validator type with builder:
+
 ```scala
 import cats.Applicative
 import dupin._
 import scala.concurrent.Future
 
-type FutureValidator[R] = Validator[String, R, Future]
-def FutureValidator[R](implicit A: Applicative[Future]) = Validator[String, R, Future]
+type FutureValidator[A] = Validator[Future, String, A]
+def FutureValidator[A](implicit A: Applicative[Future]) = Validator[Future, String, A]
 ``` 
 Then you can create validators with generic dsl (don't forget to import required type classes, as minimum `Functor[Future]`):
 ```scala
@@ -212,6 +214,7 @@ assert(Await.result(result, Duration.Inf) == Validated.invalid(NonEmptyChain(
 ### Custom validating package
 
 To avoid imports boilerplate and isolating all customizations you can define your own dupin package:
+
 ```scala
 import cats.Applicative
 import dupin.readme.MessageCustomizationDomainFixture._
@@ -219,8 +222,8 @@ import dupin.syntax.DupinSyntax
 import scala.concurrent.Future
 
 package object custom extends DupinCoreDsl with DupinSyntax {
-    type CustomValidator[R] = Validator[I18nMessage, R, Future]
-    def CustomValidator[R](implicit A: Applicative[Future]) = Validator[I18nMessage, R, Future]
+    type CustomValidator[A] = Validator[Future, I18nMessage, A]
+    def CustomValidator[A](implicit A: Applicative[Future]) = Validator[Future, I18nMessage, A]
 }
 ```
 Then you can start using your own validator type with single import:

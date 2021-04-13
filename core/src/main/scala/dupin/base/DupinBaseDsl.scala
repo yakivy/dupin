@@ -4,10 +4,10 @@ import cats.Id
 import dupin.DupinCoreDsl
 
 trait DupinBaseDsl extends DupinCoreDsl {
-    type BaseValidator[R] = Validator[String, R, Id]
-    def BaseValidator[R] = Validator[String, R, Id]
+    type BaseValidator[A] = Validator[Id, String, A]
+    def BaseValidator[A] = Validator[Id, String, A]
 
-    type BaseMessageBuilder[-R] = MessageBuilder[R, String]
+    type BaseMessageBuilder[-A] = MessageBuilder[A, String]
 
     implicit def idF1Conversion[A, B](f: A => B): A => Id[B] = a => f(a)
 }

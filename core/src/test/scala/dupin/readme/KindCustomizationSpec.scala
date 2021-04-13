@@ -14,8 +14,8 @@ trait KindCustomizationDslFixture extends KindCustomizationDomainFixture {
     import dupin._
     import scala.concurrent.Future
 
-    type FutureValidator[R] = Validator[String, R, Future]
-    def FutureValidator[R](implicit A: Applicative[Future]) = Validator[String, R, Future]
+    type FutureValidator[A] = Validator[Future, String, A]
+    def FutureValidator[A](implicit A: Applicative[Future]) = Validator[Future, String, A]
 }
 
 trait KindCustomizationValidatorFixture extends KindCustomizationDslFixture {

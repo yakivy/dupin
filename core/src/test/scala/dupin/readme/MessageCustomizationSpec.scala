@@ -9,8 +9,8 @@ import org.scalatest.WordSpec
 trait MessageCustomizationDslFixture {
     import dupin._
 
-    type I18nValidator[R] = Validator[I18nMessage, R, cats.Id]
-    def I18nValidator[R] = Validator[I18nMessage, R, cats.Id]
+    type I18nValidator[A] = Validator[cats.Id, I18nMessage, A]
+    def I18nValidator[A] = Validator[cats.Id, I18nMessage, A]
 }
 
 trait MessageCustomizationValidatorFixture extends MessageCustomizationDslFixture {

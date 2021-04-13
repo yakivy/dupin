@@ -3,8 +3,8 @@ package dupin
 import cats.Applicative
 
 trait DupinCoreDsl {
-    type Validator[L, R, F[_]] = core.Validator[L, R, F]
-    def Validator[L, R, F[_]](implicit A: Applicative[F]) = core.Validator[L, R, F]
+    type Validator[F[_], E, A] = core.Validator[F, E, A]
+    def Validator[F[_], E, A](implicit A: Applicative[F]) = core.Validator[F, E, A]
 
-    type MessageBuilder[-R, +L] = core.Context[R] => L
+    type MessageBuilder[-A, +E] = core.Context[A] => E
 }
