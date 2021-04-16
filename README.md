@@ -28,7 +28,7 @@ Add cats and dupin dependencies to the build file, let's assume you are using sb
 ```scala
 libraryDependencies += Seq(
     "org.typelevel" %% "cats-core" % "2.0.0",
-    "com.github.yakivy" %% "dupin-core" % "0.1.4",
+    "com.github.yakivy" %% "dupin-core" % "0.1.5",
 )
 ```
 Describe the domain:

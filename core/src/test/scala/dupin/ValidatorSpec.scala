@@ -75,6 +75,38 @@ class ValidatorSpec extends WordSpec {
                 assert(v4.validate(ds) == r)
             }
         }
+
+        "created from macros lifted field path" should {
+            case class OneLiftedFieldDataStructure(value: Option[String])
+
+            import cats.implicits._
+            implicit val bv = BaseValidator[String].root(c, m)
+            val v1 = BaseValidator[OneLiftedFieldDataStructure].pathK(_.value)(bv)
+            val v2 = BaseValidator[OneLiftedFieldDataStructure].combinePK(_.value)(bv)
+            val v3 = BaseValidator[OneLiftedFieldDataStructure].combinePI(_.value)
+
+            "return success result" in {
+                val ds1 = OneLiftedFieldDataStructure(Option("valid string"))
+                val r1 = Validated.validNec(ds1)
+                assert(v1.validate(ds1) == r1)
+                assert(v2.validate(ds1) == r1)
+                assert(v3.validate(ds1) == r1)
+
+                val ds2 = OneLiftedFieldDataStructure(None)
+                val r2 = Validated.validNec(ds2)
+                assert(v1.validate(ds2) == r2)
+                assert(v2.validate(ds2) == r2)
+                assert(v3.validate(ds2) == r2)
+            }
+
+            "return fail result" in {
+                val ds = OneLiftedFieldDataStructure(Option("invalid string"))
+                val r = Validated.invalidNec(".value.[0] is invalid")
+                assert(v1.validate(ds) == r)
+                assert(v2.validate(ds) == r)
+                assert(v3.validate(ds) == r)
+            }
+        }
     }
 
     "Two field validator" when {

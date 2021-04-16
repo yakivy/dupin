@@ -7,6 +7,7 @@ import cats.data.ValidatedNec
 import cats.implicits._
 import dupin.MessageBuilder
 import dupin.core.Validator.PartiallyAppliedCombineP
+import dupin.core.Validator.PartiallyAppliedCombinePK
 import dupin.core.Validator.PartiallyAppliedCombinePR
 import scala.language.experimental.macros
 
@@ -23,7 +24,7 @@ class Validator[F[_], E, A](val f: A => F[ValidatedNec[MessageBuilder[A, E], A]]
     /**
      * Recovers validation result with a failure. It is useful for replacing validation message.
      */
-    def recoverWithF(
+    def recoverWithFailure(
         m1: MessageBuilder[A, E], ms: MessageBuilder[A, E]*
     ): Validator[F, E, A] = recoverWith(_ => Validated.Invalid(NonEmptyChain(m1, ms: _*)))
 
@@ -32,6 +33,8 @@ class Validator[F[_], E, A](val f: A => F[ValidatedNec[MessageBuilder[A, E], A]]
     )
 
     def compose[AA](f: AA => A): Validator[F, E, AA] = composeP(Root, f)
+
+    def composeK[AF[_]](implicit F: ValidatorComposeK[F, AF]): Validator[F, E, AF[A]] = F(this)
 
     def combine(
         v: Validator[F, E, A]
@@ -73,6 +76,12 @@ class Validator[F[_], E, A](val f: A => F[ValidatedNec[MessageBuilder[A, E], A]]
         macro ValidatorMacro.combinePImpl[F, E, A, AA]
 
     /**
+     * Combines with lifted field validator using macros generated path.
+     */
+    def combinePK[AF[_], AA](f: A => AF[AA]): PartiallyAppliedCombinePK[F, E, A, AF, AA] =
+        macro ValidatorMacro.combinePKImpl[F, E, A, AF, AA]
+
+    /**
      * Combines with field validator passed by separate arguments using macros generated path.
      */
     def combinePR[AA](f: A => AA): PartiallyAppliedCombinePR[F, E, A, AA] =
@@ -111,26 +120,36 @@ case class SuccessValidator[F[_], E, A]()(implicit A: Applicative[F])
     /**
      * Creates a validator that always returns fail result.
      */
-    def fail(m: MessageBuilder[A, E]): Validator[F, E, A] = FailValidator(m)
+    def failure(m: MessageBuilder[A, E], ms: MessageBuilder[A, E]*): Validator[F, E, A] =
+        FailValidator(m, ms: _*)
 
     /**
      * Creates a root validator from given arguments.
      * Alias for [[combineR]]
      */
-    def root(f: A => F[Boolean], m: MessageBuilder[A, E]): Validator[F, E, A] = combineR(f, m)
+    def root(f: A => F[Boolean], m: MessageBuilder[A, E]): Validator[F, E, A] =
+        combineR(f, m)
 
     /**
      * Creates a field validator from root validator using explicit path.
      * Alias for [[combineP(path: Path, f: A => AA)(v: Validator[F, E, AA])]]
      */
-    def path[AA](p: Path, f: A => AA)(v: Validator[F, E, AA]): Validator[F, E, A] = combineP(p, f)(v)
+    def path[AA](p: Path, f: A => AA)(v: Validator[F, E, AA]): Validator[F, E, A] =
+        combineP(p, f)(v)
 
     /**
-     * Creates a field validator from root validator using macros generated path.
+     * Creates a field validator using macros generated path.
      * Alias for [[combineP(f: A => AA)]]
      */
     def path[AA](f: A => AA): PartiallyAppliedCombineP[F, E, A, AA] =
         macro ValidatorMacro.combinePImpl[F, E, A, AA]
+
+    /**
+     * Creates a lifted field validator using macros generated path.
+     * Alias for [[combinePK(f: A => AF[AA])]]
+     */
+    def pathK[AF[_], AA](f: A => AF[AA]): PartiallyAppliedCombinePK[F, E, A, AF, AA] =
+        macro ValidatorMacro.combinePKImpl[F, E, A, AF, AA]
 
     /**
      * Creates a field validator from root validator passed as separate arguments using macros generated path.
@@ -148,8 +167,8 @@ case class SuccessValidator[F[_], E, A]()(implicit A: Applicative[F])
         macro ValidatorMacro.combineDImpl[F, E, A]
 }
 
-case class FailValidator[F[_], E, A](m: MessageBuilder[A, E])(implicit A: Applicative[F])
-    extends Validator[F, E, A](_ => A.pure(Validated.invalidNec(m)))
+case class FailValidator[F[_], E, A](m: MessageBuilder[A, E], ms: MessageBuilder[A, E]*)(implicit A: Applicative[F])
+    extends Validator[F, E, A](_ => A.pure(Validated.Invalid(NonEmptyChain(m, ms: _*))))
 
 object Validator extends ValidatorInstances {
     def apply[F[_], E, A](implicit A: Applicative[F]): SuccessValidator[F, E, A] = SuccessValidator()
@@ -158,6 +177,14 @@ object Validator extends ValidatorInstances {
         def apply(
             v: Validator[F, E, AA])(implicit A: Applicative[F]
         ): Validator[F, E, A] = iv.combineP(p :: Root, f)(v)
+    }
+
+    case class PartiallyAppliedCombinePK[F[_], E, A, AF[_], AA](
+        iv: Validator[F, E, A], p: PathPart, f: A => AF[AA]
+    ) {
+        def apply(
+            v: Validator[F, E, AA])(implicit A: Applicative[F], F: ValidatorComposeK[F, AF]
+        ): Validator[F, E, A] = iv.combineP(p :: Root, f)(v.composeK[AF])
     }
 
     case class PartiallyAppliedCombinePR[F[_], E, A, AA](iv: Validator[F, E, A], p: PathPart, f: A => AA) {
