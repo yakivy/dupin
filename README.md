@@ -95,14 +95,14 @@ And since validators can be combined, you can create validators from other valid
 ```scala
 import dupin.base.all._
 
-implicit val memberValidator = BaseValidator[Member].path(_.age)(min(18) && max(40))
+implicit val memberValidator = BaseValidator[Member]
+    .path(_.age)(min(18) && max(40))
 
 val invalidMember = Member(Name("Ada"), 0)
 val result = invalidMember.validate
 
 assert(result == Validated.invalidNec(".age should be greater than 18"))
 ```
-You can find full list of validators that provided out of the box in `dupin.instances.DupinInstances`
 
 ### Message customization
 
