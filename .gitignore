@@ -1,4 +1,3 @@
+out
 .idea
 .bsp
-!.idea/runConfigurations
-**/target/*

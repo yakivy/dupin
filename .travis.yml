@@ -1,28 +1,9 @@
+os: linux
+dist: bionic
 language: scala
 
 jdk:
-  - openjdk11
+  - openjdk8
 
-jobs:
-  include:
-    - &build_test
-      stage: build and test
-      scala:
-        - 2.11.12
-      script:
-        - sbt ++$TRAVIS_SCALA_VERSION clean test
-    - stage: build and test
-      scala:
-        - 2.12.10
-      script:
-        - sbt ++$TRAVIS_SCALA_VERSION clean coverage test coverageReport
-      after_success:
-        - bash <(curl -s https://codecov.io/bash)
-    - <<: *build_test
-      scala:
-        - 2.13.1
-
-cache:
-  directories:
-    - $HOME/.ivy2/cache
-    - $HOME/.sbt/boot
+script:
+  - ./mill -i __.__.test
