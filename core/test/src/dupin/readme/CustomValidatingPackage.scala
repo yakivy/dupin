@@ -8,8 +8,8 @@ import scala.concurrent.Future
 class CustomValidatingPackage extends AsyncFreeSpec with KindCustomizationDomainFixture {
     "Custom validating package should" - {
         "be correct" in {
-            import dupin.custom._
             import cats.implicits._
+            import dupin.custom._
 
             val nameService = new NameService
 

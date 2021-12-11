@@ -28,7 +28,7 @@ You may find Dupin useful if you...
 Add cats and dupin dependencies to the build file, let's assume you are using sbt:
 ```scala
 libraryDependencies += Seq(
-    "org.typelevel" %% "cats-core" % "2.0.0",
+    "org.typelevel" %% "cats-core" % "2.6.1",
     "com.github.yakivy" %% "dupin-core" % "0.2.0",
 )
 ```
@@ -228,19 +228,15 @@ result.map(r => assert(r == Validated.invalid(NonEmptyChain(
 To avoid imports boilerplate and isolating all customizations you can define your own dupin package:
 
 ```scala
-import cats.Applicative
-import dupin.syntax.DupinSyntax
-import scala.concurrent.Future
-
 package object custom extends DupinCoreDsl with DupinSyntax {
     type CustomValidator[A] = Validator[Future, I18nMessage, A]
-    def CustomValidator[A](implicit A: Applicative[Future]) = Validator[Future, I18nMessage, A]
+    def CustomValidator = Validator[Future, I18nMessage]
 }
 ```
 Then you can start using your own validator type with single import:
 ```scala
-import dupin.custom._
 import cats.implicits._
+import dupin.custom._
 
 val nameService = new NameService
 
