@@ -3,6 +3,7 @@
 [![Sonatype Nexus (Snapshots)](https://img.shields.io/nexus/s/https/oss.sonatype.org/com.github.yakivy/dupin-core_2.13.svg)](https://oss.sonatype.org/content/repositories/snapshots/com/github/yakivy/dupin-core_2.13/)
 [![Build Status](https://travis-ci.com/yakivy/dupin.svg?branch=master)](https://travis-ci.com/yakivy/dupin)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+<a href="https://typelevel.org/cats/"><img src="https://typelevel.org/cats/img/cats-badge.svg" height="40px" align="right" alt="Cats friendly" /></a>
 
 Dupin is a minimal, idiomatic, customizable validation Scala library.
 
@@ -49,8 +50,8 @@ implicit val nameValidator: BasicValidator[Name] = BasicValidator
 
 //idiomatic validator for complex type
 implicit val memberValidator: BasicValidator[Member] =
-    nameValidator.composeP[Member](_.name) combine
-    BasicValidator.root[Int](a => a > 18 && a < 40, c => s"${c.path} should be between 18 and 40").composeP[Member](_.age)
+    nameValidator.comapP[Member](_.name) combine
+    BasicValidator.root[Int](a => a > 18 && a < 40, c => s"${c.path} should be between 18 and 40").comapP[Member](_.age)
 
 //same validator but with combination helpers for better type resolving
 val alternativeMemberValidator: BasicValidator[Member] = BasicValidator.success[Member]
@@ -97,7 +98,7 @@ The more validators you have, the more logic can be reused without writing valid
 ```scala
 import dupin.basic.all._
 
-def min(value: Int) = BasicValidator.root[Int](_ > value, c => s"${c.path} should be grater than $value")
+def min(value: Int) = BasicValidator.root[Int](_ > value, c => s"${c.path} should be greater than $value")
 def max(value: Int) = BasicValidator.root[Int](_ < value, c => s"${c.path} should be less than $value")
 ``` 
 And since validators can be combined, you can create validators from other validators:
@@ -111,7 +112,7 @@ implicit val memberValidator: BasicValidator[Member] = BasicValidator.success[Me
 val invalidMember = Member(Name("Ada"), 0)
 val result = invalidMember.validate
 
-assert(result == Validated.invalidNec(".age should be grater than 18"))
+assert(result == Validated.invalidNec(".age should be greater than 18"))
 ```
 
 ### Message customization
@@ -130,7 +131,7 @@ As `BasicValidator[A]` is just a type alias for `Validator[Id, String, A]`, you 
 import dupin._
 
 type I18nValidator[A] = Validator[cats.Id, I18nMessage, A]
-def I18nValidator = Validator[cats.Id, I18nMessage]
+val I18nValidator = Validator[cats.Id, I18nMessage]
 ```
 And start creating validators with custom messages:
 ```scala
@@ -193,7 +194,7 @@ import dupin._
 import scala.concurrent.Future
 
 type FutureValidator[A] = Validator[Future, String, A]
-def FutureValidator = Validator[Future, String]
+val FutureValidator = Validator[Future, String]
 ``` 
 Then you can create validators with generic dsl (don't forget to import required type classes, as minimum `Functor[Future]`):
 ```scala
@@ -230,7 +231,7 @@ To avoid imports boilerplate and isolating all customizations you can define you
 ```scala
 package object custom extends DupinCoreDsl with DupinSyntax {
     type CustomValidator[A] = Validator[Future, I18nMessage, A]
-    def CustomValidator = Validator[Future, I18nMessage]
+    val CustomValidator = Validator[Future, I18nMessage]
 }
 ```
 Then you can start using your own validator type with single import:
@@ -255,6 +256,12 @@ valid.map(assert(_))
 ```
 
 ### Changelog
+
+#### 0.3.0:
+- finalize API, there should be less breaking changes from now
+- rename `dupin.Validator.compose` to `dupin.Validator.comap`, similar to `cats.Contravariant.contramap`
+- rename `dupin.Validator.combinePK` to `dupin.Validator.combinePL`, where `L` stands for "lifted" to reflect method signature
+- minor refactorings
 
 #### 0.2.0:
 - migrate to mill build tool

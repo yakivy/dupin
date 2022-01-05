@@ -10,7 +10,7 @@ trait MessageCustomizationDslFixture {
     import dupin._
 
     type I18nValidator[A] = Validator[cats.Id, I18nMessage, A]
-    def I18nValidator = Validator[cats.Id, I18nMessage]
+    val I18nValidator = Validator[cats.Id, I18nMessage]
 }
 
 trait MessageCustomizationValidatorFixture extends MessageCustomizationDslFixture {

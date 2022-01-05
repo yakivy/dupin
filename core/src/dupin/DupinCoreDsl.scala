@@ -2,7 +2,7 @@ package dupin
 
 trait DupinCoreDsl {
     type Validator[F[_], E, A] = core.Validator[F, E, A]
-    def Validator[F[_], E] = core.Validator[F, E]
+    val Validator = core.Validator
 
     type MessageBuilder[-A, +E] = core.Context[A] => E
 }

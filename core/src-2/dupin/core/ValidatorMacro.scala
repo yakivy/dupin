@@ -2,16 +2,16 @@ package dupin.core
 
 import cats.Functor
 import dupin.core.Validator.PartiallyAppliedCombineP
-import dupin.core.Validator.PartiallyAppliedCombinePK
+import dupin.core.Validator.PartiallyAppliedCombinePL
 import dupin.core.Validator.PartiallyAppliedCombinePR
 import scala.reflect.macros.blackbox
 
 object ValidatorMacro {
-    def composePImpl[F[_], E, A, AA](
+    def comapPImpl[F[_], E, A, AA](
         c: blackbox.Context)(f: c.Expr[A => AA])(F: c.Expr[Functor[F]]
     ): c.Expr[Validator[F, E, AA]] = {
         import c.universe._
-        c.Expr(q"""${c.prefix}.composeEP(
+        c.Expr(q"""${c.prefix}.comapPE(
             _root_.dupin.core.Root.::(_root_.dupin.core.FieldPart(${getFieldName(c)(f).decodedName.toString})), $f
         )""")
     }
@@ -25,11 +25,11 @@ object ValidatorMacro {
         )""")
     }
 
-    def combinePKImpl[F[_], E, A, AF[_], AA](
-        c: blackbox.Context)(f: c.Expr[A => AF[AA]]
-    ): c.Expr[PartiallyAppliedCombinePK[F, E, A, AF, AA]] = {
+    def combinePLImpl[F[_], E, A, G[_], AA](
+        c: blackbox.Context)(f: c.Expr[A => G[AA]]
+    ): c.Expr[PartiallyAppliedCombinePL[F, E, A, G, AA]] = {
         import c.universe._
-        c.Expr(q"""_root_.dupin.core.Validator.PartiallyAppliedCombinePK(
+        c.Expr(q"""_root_.dupin.core.Validator.PartiallyAppliedCombinePL(
             ${c.prefix}, _root_.dupin.core.FieldPart(${getFieldName(c)(f).decodedName.toString}), $f
         )""")
     }
@@ -47,7 +47,7 @@ object ValidatorMacro {
         c: blackbox.Context)(f: c.Expr[A => AA])(V: c.Expr[Validator[F, E, AA]]
     ): c.Expr[Validator[F, E, A]] = {
         import c.universe._
-        c.Expr(q"""${c.prefix}.combineEP(
+        c.Expr(q"""${c.prefix}.combinePE(
             _root_.dupin.core.Root.::(_root_.dupin.core.FieldPart(${getFieldName(c)(f).decodedName.toString})), $f)($V
         )""")
     }
@@ -70,7 +70,7 @@ object ValidatorMacro {
         c.Expr(AT.tpe.members.toList.sortBy(_.fullName).collect {
             case m: MethodSymbol if m.isParamAccessor => m
         }.foldLeft(q"""_root_.dupin.core.Validator[$FT, $ET].success[$AT]""") { case (t, m) => q"""
-            $t.combineEP(
+            $t.combinePE(
                 _root_.dupin.core.Root.::(_root_.dupin.core.FieldPart(${m.name.toString})),
                 _.${m.name})(
                 implicitly[_root_.dupin.core.Validator[$FT, $ET, ${m.returnType}]]

@@ -7,7 +7,7 @@ import org.scalatest.freespec.AnyFreeSpec
 trait PredefinedValidatorsFixture {
     import dupin.basic.all._
 
-    def min(value: Int) = BasicValidator.root[Int](_ > value, c => s"${c.path} should be grater than $value")
+    def min(value: Int) = BasicValidator.root[Int](_ > value, c => s"${c.path} should be greater than $value")
     def max(value: Int) = BasicValidator.root[Int](_ < value, c => s"${c.path} should be less than $value")
 }
 
@@ -23,7 +23,7 @@ class PredefinedValidatorsSpec extends AnyFreeSpec with PredefinedValidatorsFixt
             val invalidMember = Member(Name("Ada"), 0)
             val result = invalidMember.validate
 
-            assert(result == Validated.invalidNec(".age should be grater than 18"))
+            assert(result == Validated.invalidNec(".age should be greater than 18"))
         }
     }
 }

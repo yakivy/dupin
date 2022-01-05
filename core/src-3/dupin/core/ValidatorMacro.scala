@@ -27,7 +27,7 @@ object ValidatorMacro {
                     case Some(arg) => arg
                     case _ => report.throwError(s"Unable to resolve implicit validator for ${m._1.name} field")
                 }
-                '{$t.combineEP(
+                '{$t.combinePE(
                     FieldPart(${Literal(StringConstant(m._1.name)).asExprOf[String]}) :: Root,
                     a => ${Select('a.asTerm, m._1).asExprOf[tpe]})(
                     $resolvedValidator)(

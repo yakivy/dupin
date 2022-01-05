@@ -1,8 +1,6 @@
 package dupin.core
 
-import cats.Applicative
-import cats.Functor
-import cats.Monoid
+import cats._
 import cats.data.NonEmptyChain
 import cats.data.Validated
 import cats.data.ValidatedNec
@@ -35,16 +33,35 @@ case class Validator[F[_], E, A](
         implicit F: Functor[F]
     ): Validator[F, EE, A] = leftMap(_ => NonEmptyChain(m1, ms: _*))
 
+    def mapK[G[_]](f: F ~> G): Validator[G, E, A] = Validator(a => f(run(a)))
+
     /**
-     * Composes validator with explicit field path
+     * Contravariant map without path changes. Example:
+     * {{{
+     * scala> case class User(age: Int)
+     * scala> val user = User(1)
+     * scala> val validator = dupin.basic.BasicValidator.failure[Int](c => s"${c.path} is wrong")
+     *
+     * scala> validator.comap[User](_.age).validate(user)
+     * res0: cats.Id[cats.data.ValidatedNec[String,User]] = Invalid(Chain(. is wrong))
+     *
+     * scala> validator.comapP[User](_.age).validate(user)
+     * res1: cats.Id[cats.data.ValidatedNec[String,User]] = Invalid(Chain(.age is wrong))
+     * }}}
      */
-    def composeEP[AA](p: Path, f: AA => A)(implicit F: Functor[F]): Validator[F, E, AA] = new Validator(
+    def comap[AA](f: AA => A)(implicit F: Functor[F]): Validator[F, E, AA] = comapPE(Root, f)
+
+    /**
+     * Contravariant map with explicit path prefix
+     */
+    def comapPE[AA](p: Path, f: AA => A)(implicit F: Functor[F]): Validator[F, E, AA] = new Validator(
         a => F.map(run(f(a)))(_.bimap(_.map(_.compose(_.mapP(p, f))), _ => a))
     )
 
-    def compose[AA](f: AA => A)(implicit F: Functor[F]): Validator[F, E, AA] = composeEP(Root, f)
-
-    def composeK[AF[_]](implicit VC: ValidatorComposeK[F, AF]): Validator[F, E, AF[A]] = VC(this)
+    /**
+     * Contravariant map that lifts `A` to higher-kinded type `G` including path changes
+     */
+    def comapToP[G[_]](implicit C: ValidatorComapToP[F, E, A, G]): Validator[F, E, G[A]] = C(this)
 
     def combine(v: Validator[F, E, A])(implicit A: Applicative[F]): Validator[F, E, A] =
         Validator(a => (this.run(a), v.run(a)).mapN(_ product _).map(_.map(_ => a)))
@@ -72,20 +89,13 @@ case class Validator[F[_], E, A](
     /**
      * Combines with field validator using explicit path.
      */
-    def combineEP[AA](
+    def combinePE[AA](
         p: Path, f: A => AA)(v: Validator[F, E, AA])(implicit A: Applicative[F]
-    ): Validator[F, E, A] = combine(v.composeEP(p, f))
+    ): Validator[F, E, A] = combine(v.comapPE(p, f))
 }
 
 object Validator extends ValidatorInstances {
     def apply[F[_], E]: PartiallyAppliedConstructor[F, E] = PartiallyAppliedConstructor[F, E]()
-
-    implicit final def validatorInstances[F[_] : Applicative, E, A]: Monoid[Validator[F, E, A]] =
-        new Monoid[Validator[F, E, A]] {
-            override val empty: Validator[F, E, A] = Validator[F, E].success[A]
-            override def combine(x: Validator[F, E, A], y: Validator[F, E, A]): Validator[F, E, A] =
-                x combine y
-        }
 
     case class PartiallyAppliedConstructor[F[_], E]() extends PartiallyAppliedConstructorBinCompat[F, E] {
         def apply[A](implicit V: Validator[F, E, A]): Validator[F, E, A] = V
@@ -114,21 +124,21 @@ object Validator extends ValidatorInstances {
     case class PartiallyAppliedCombineP[F[_], E, A, AA](iv: Validator[F, E, A], p: PathPart, f: A => AA) {
         def apply(
             v: Validator[F, E, AA])(implicit A: Applicative[F]
-        ): Validator[F, E, A] = iv.combineEP(p :: Root, f)(v)
+        ): Validator[F, E, A] = iv.combinePE(p :: Root, f)(v)
     }
 
-    case class PartiallyAppliedCombinePK[F[_], E, A, AF[_], AA](
-        iv: Validator[F, E, A], p: PathPart, f: A => AF[AA]
+    case class PartiallyAppliedCombinePL[F[_], E, A, G[_], AA](
+        iv: Validator[F, E, A], p: PathPart, f: A => G[AA]
     ) {
         def apply(
-            v: Validator[F, E, AA])(implicit A: Applicative[F], F: ValidatorComposeK[F, AF]
-        ): Validator[F, E, A] = iv.combineEP(p :: Root, f)(v.composeK[AF])
+            v: Validator[F, E, AA])(implicit A: Applicative[F], C: ValidatorComapToP[F, E, AA, G]
+        ): Validator[F, E, A] = iv.combinePE(p :: Root, f)(v.comapToP[G])
     }
 
     case class PartiallyAppliedCombinePR[F[_], E, A, AA](iv: Validator[F, E, A], p: PathPart, f: A => AA) {
         def apply(
             fv: AA => F[Boolean], m: MessageBuilder[AA, E])(implicit A: Applicative[F]
-        ): Validator[F, E, A] = iv.combineEP(p :: Root, f)(Validator[F, E].root(fv, m))
+        ): Validator[F, E, A] = iv.combinePE(p :: Root, f)(Validator[F, E].root(fv, m))
     }
 }
 

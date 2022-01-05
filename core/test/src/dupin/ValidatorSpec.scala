@@ -37,8 +37,8 @@ class ValidatorSpec extends AnyFreeSpec {
         "created from explicit field path should" - {
             val p = FieldPart("value") :: Root
             val bv = BasicValidator.root[String](c, m)
-            val v1 = bv.composeEP[OneFieldDataStructure](p, _.value)
-            val v2 = BasicValidator.success[OneFieldDataStructure].combineEP(p, _.value)(bv)
+            val v1 = bv.comapPE[OneFieldDataStructure](p, _.value)
+            val v2 = BasicValidator.success[OneFieldDataStructure].combinePE(p, _.value)(bv)
 
             "return success result" in {
                 val ds = OneFieldDataStructure("valid string")
@@ -58,7 +58,7 @@ class ValidatorSpec extends AnyFreeSpec {
         "created from macros field path should" - {
             val v1 = BasicValidator.success[OneFieldDataStructure].combinePR(_.value)(c, m)
             implicit val bv: BasicValidator[String] = BasicValidator.root(c, m)
-            val v2 = bv.composeP[OneFieldDataStructure](_.value)
+            val v2 = bv.comapP[OneFieldDataStructure](_.value)
             val v3 = BasicValidator.success[OneFieldDataStructure].combineP(_.value)(bv)
             val v4 = BasicValidator.success[OneFieldDataStructure].combinePI(_.value)
 
@@ -86,8 +86,8 @@ class ValidatorSpec extends AnyFreeSpec {
 
             import cats.implicits._
             implicit val bv: BasicValidator[String] = BasicValidator.root(c, m)
-            val v1 = bv.composeK[Option].composeP[OneLiftedFieldDataStructure](_.value)
-            val v2 = BasicValidator.success[OneLiftedFieldDataStructure].combinePK(_.value)(bv)
+            val v1 = bv.comapToP[Option].comapP[OneLiftedFieldDataStructure](_.value)
+            val v2 = BasicValidator.success[OneLiftedFieldDataStructure].combinePL(_.value)(bv)
             val v3 = BasicValidator.success[OneLiftedFieldDataStructure].combinePI(_.value)
 
             "return success result" in {
@@ -162,8 +162,8 @@ class ValidatorSpec extends AnyFreeSpec {
                 .combinePR(_.v2)(c2, m)
             implicit val bv1: BasicValidator[String] = BasicValidator.root[String](c1, m)
             implicit val bv2: BasicValidator[Int] = BasicValidator.root[Int](c2, m)
-            val v2 = bv1.composeP[TwoFieldDataStructure](_.v1) combine
-                bv2.composeP[TwoFieldDataStructure](_.v2)
+            val v2 = bv1.comapP[TwoFieldDataStructure](_.v1) combine
+                bv2.comapP[TwoFieldDataStructure](_.v2)
             val v3 = BasicValidator.success[TwoFieldDataStructure]
                 .combineP(_.v1)(bv1)
                 .combineP(_.v2)(bv2)

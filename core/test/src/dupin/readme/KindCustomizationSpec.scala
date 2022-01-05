@@ -12,7 +12,7 @@ trait KindCustomizationDslFixture extends KindCustomizationDomainFixture {
     import scala.concurrent.Future
 
     type FutureValidator[A] = Validator[Future, String, A]
-    def FutureValidator = Validator[Future, String]
+    val FutureValidator = Validator[Future, String]
 }
 
 trait KindCustomizationValidatorFixture extends AsyncFreeSpec with KindCustomizationDslFixture {
