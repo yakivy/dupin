@@ -9,6 +9,29 @@ import dupin.core.Root
 import org.scalatest.freespec.AnyFreeSpec
 
 class ValidatorSpec extends AnyFreeSpec {
+    "Type validator" - {
+        "when created from list" - {
+            "should return fail result" in {
+                val v1 = BasicValidator.failure[Int](c => s"${c.path} value `${c.value}` is wrong")
+                val v2 = v1.comapToP[List]
+
+                assert(v2.validate(List(1, 2, 3)) == Validated.invalid(NonEmptyChain(
+                    ".[0] value `1` is wrong",
+                    ".[1] value `2` is wrong",
+                    ".[2] value `3` is wrong",
+                )))
+            }
+        }
+        "when created from long list" - {
+            "should return success result" in {
+                val v1 = BasicValidator.success[Int]
+                val v2 = v1.comapToP[List]
+
+                assert(v2.validate(List.fill(1000000)(1)).isValid)
+            }
+        }
+    }
+
     "One field validator when" - {
         case class OneFieldDataStructure(value: String)
         val m: BasicMessageBuilder[Any] = c => s"${c.path} is invalid"

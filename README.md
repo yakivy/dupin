@@ -257,8 +257,16 @@ valid.map(assert(_))
 
 ### Changelog
 
+#### 0.3.1:
+- optimize a naive implementation of `ValidatorComapToP.validatorComapToPForTraverse` that threw StackOverflowException for long lists
+
+---
+
+<center>Finalize API</center>
+
+---
+
 #### 0.3.0:
-- finalize API, there should be less breaking changes from now
 - rename `dupin.Validator.compose` to `dupin.Validator.comap`, similar to `cats.Contravariant.contramap`
 - rename `dupin.Validator.combinePK` to `dupin.Validator.combinePL`, where `L` stands for "lifted" to reflect method signature
 - minor refactorings
