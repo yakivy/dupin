@@ -262,7 +262,7 @@ valid.map(assert(_))
 
 ---
 
-<center>Finalize API</center>
+<p align=center>Finalize API</p>
 
 ---
 
