@@ -2,8 +2,10 @@ package dupin.core
 
 import cats.Functor
 import dupin.core.Validator.PartiallyAppliedCombineP
+import dupin.core.Validator.PartiallyAppliedCombinePC
 import dupin.core.Validator.PartiallyAppliedCombinePL
 import dupin.core.Validator.PartiallyAppliedCombinePR
+import dupin.core.Validator.PartiallyAppliedCombinePRF
 import scala.language.experimental.macros
 
 trait ValidatorBinCompat[F[_], E, A] { this: Validator[F, E, A] =>
@@ -31,10 +33,19 @@ trait ValidatorBinCompat[F[_], E, A] { this: Validator[F, E, A] =>
         macro ValidatorMacro.combinePImpl[F, E, A, AA]
 
     /**
+     * Combines with field validator from context using macros generated path.
+     */
+    def combinePC[AA](f: A => AA): PartiallyAppliedCombinePC[F, E, A, AA] =
+        macro ValidatorMacro.combinePCImpl[F, E, A, AA]
+
+    /**
      * Combines with field validator passed by separate arguments using macros generated path.
      */
     def combinePR[AA](f: A => AA): PartiallyAppliedCombinePR[F, E, A, AA] =
         macro ValidatorMacro.combinePRImpl[F, E, A, AA]
+
+    def combinePRF[AA](f: A => AA): PartiallyAppliedCombinePRF[F, E, A, AA] =
+        macro ValidatorMacro.combinePRFImpl[F, E, A, AA]
 
     /**
      * Combines with lifted field validator using macros generated path.

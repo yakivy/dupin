@@ -1,6 +1,7 @@
 package dupin.core
 
 case class Context[+A](path: Path, value: A) {
-    def mapP[AA](prefix: Path, f: A => AA): Context[AA] =
-        Context(prefix ::: path, f(value))
+    def mapP[AA](path: Path, f: A => AA): Context[AA] = {
+        Context(this.path ++ path, f(value))
+    }
 }

@@ -1,14 +1,16 @@
 package dupin
 
 import cats._
+import cats.implicits._
 import cats.data.NonEmptyChain
 import cats.data.Validated
 import dupin.basic._
 import dupin.core.FieldPart
-import dupin.core.Root
-import org.scalatest.freespec.AnyFreeSpec
+import org.scalatest.freespec.AsyncFreeSpec
+import scala.concurrent.Future
+import scala.util.Try
 
-class ValidatorSpec extends AnyFreeSpec {
+class ValidatorSpec extends AsyncFreeSpec {
     "Type validator" - {
         "when created from list" - {
             "should return fail result" in {
@@ -35,6 +37,8 @@ class ValidatorSpec extends AnyFreeSpec {
     "One field validator when" - {
         case class OneFieldDataStructure(value: String)
         val m: BasicMessageBuilder[Any] = c => s"${c.path} is invalid"
+        val vds = OneFieldDataStructure("valid string")
+        val ivds = OneFieldDataStructure("invalid string")
 
         "created from root should" - {
             val c: OneFieldDataStructure => Boolean = _.value != "invalid string"
@@ -42,39 +46,35 @@ class ValidatorSpec extends AnyFreeSpec {
             val v2 = BasicValidator.success[OneFieldDataStructure].combineR(c, m)
 
             "return success result" in {
-                val ds = OneFieldDataStructure("valid string")
-                val r = Validated.validNec(ds)
-                assert(v1.validate(ds) == r)
-                assert(v2.validate(ds) == r)
+                val r = Validated.validNec(vds)
+                assert(v1.validate(vds) == r)
+                assert(v2.validate(vds) == r)
             }
 
             "return fail result" in {
-                val ds = OneFieldDataStructure("invalid string")
                 val r = Validated.invalidNec(". is invalid")
-                assert(v1.validate(ds) == r)
-                assert(v2.validate(ds) == r)
+                assert(v1.validate(ivds) == r)
+                assert(v2.validate(ivds) == r)
             }
         }
 
         val c: String => Boolean = _ != "invalid string"
         "created from explicit field path should" - {
-            val p = FieldPart("value") :: Root
+            val p = Path(FieldPart("value"))
             val bv = BasicValidator.root[String](c, m)
             val v1 = bv.comapPE[OneFieldDataStructure](p, _.value)
             val v2 = BasicValidator.success[OneFieldDataStructure].combinePE(p, _.value)(bv)
 
             "return success result" in {
-                val ds = OneFieldDataStructure("valid string")
-                val r = Validated.validNec(ds)
-                assert(v1.validate(ds) == r)
-                assert(v2.validate(ds) == r)
+                val r = Validated.validNec(vds)
+                assert(v1.validate(vds) == r)
+                assert(v2.validate(vds) == r)
             }
 
             "return fail result" in {
-                val ds = OneFieldDataStructure("invalid string")
                 val r = Validated.invalidNec(".value is invalid")
-                assert(v1.validate(ds) == r)
-                assert(v2.validate(ds) == r)
+                assert(v1.validate(ivds) == r)
+                assert(v2.validate(ivds) == r)
             }
         }
 
@@ -86,21 +86,19 @@ class ValidatorSpec extends AnyFreeSpec {
             val v4 = BasicValidator.success[OneFieldDataStructure].combinePI(_.value)
 
             "return success result" in {
-                val ds = OneFieldDataStructure("valid string")
-                val r = Validated.validNec(ds)
-                assert(v1.validate(ds) == r)
-                assert(v2.validate(ds) == r)
-                assert(v3.validate(ds) == r)
-                assert(v4.validate(ds) == r)
+                val r = Validated.validNec(vds)
+                assert(v1.validate(vds) == r)
+                assert(v2.validate(vds) == r)
+                assert(v3.validate(vds) == r)
+                assert(v4.validate(vds) == r)
             }
 
             "return fail result" in {
-                val ds = OneFieldDataStructure("invalid string")
                 val r = Validated.invalidNec(".value is invalid")
-                assert(v1.validate(ds) == r)
-                assert(v2.validate(ds) == r)
-                assert(v3.validate(ds) == r)
-                assert(v4.validate(ds) == r)
+                assert(v1.validate(ivds) == r)
+                assert(v2.validate(ivds) == r)
+                assert(v3.validate(ivds) == r)
+                assert(v4.validate(ivds) == r)
             }
         }
 
@@ -133,6 +131,45 @@ class ValidatorSpec extends AnyFreeSpec {
                 assert(v1.validate(ds) == r)
                 assert(v2.validate(ds) == r)
                 assert(v3.validate(ds) == r)
+            }
+        }
+
+        "effect should" - {
+            type FutureValidator[A] = Validator[Future, String, A]
+            val FutureValidator = Validator[Future, String]
+
+            val c1 = c.andThen(Future.successful)
+            implicit val bv: FutureValidator[String] = FutureValidator.rootF(c1, m)
+            val v1 = bv.comapP[OneFieldDataStructure](_.value)
+            val v2 = FutureValidator.success[String].combineRF(c1, m).comapP[OneFieldDataStructure](_.value)
+            val v3 = FutureValidator.success[String].combineR(c, m).comapP[OneFieldDataStructure](_.value)
+            val v4 = FutureValidator.success[OneFieldDataStructure].combinePRF(_.value)(c1, m)
+            val v5 = FutureValidator.success[OneFieldDataStructure].combinePR(_.value)(c, m)
+
+            "return success result" in {
+                val er = Validated.validNec(vds)
+                (
+                    v1.validate(vds), v2.validate(vds), v3.validate(vds), v4.validate(vds), v5.validate(vds)
+                ).mapN { (vr1, vr2, vr3, vr4, vr5) =>
+                    assert(vr1 == er)
+                    assert(vr2 == er)
+                    assert(vr3 == er)
+                    assert(vr4 == er)
+                    assert(vr5 == er)
+                }
+            }
+
+            "return fail result" in {
+                val er = Validated.invalidNec(".value is invalid")
+                (
+                    v1.validate(ivds), v2.validate(ivds), v3.validate(ivds), v4.validate(ivds), v5.validate(ivds)
+                ).mapN { (vr1, vr2, vr3, vr4, vr5) =>
+                    assert(vr1 == er)
+                    assert(vr2 == er)
+                    assert(vr3 == er)
+                    assert(vr4 == er)
+                    assert(vr5 == er)
+                }
             }
         }
     }
@@ -270,6 +307,33 @@ class ValidatorSpec extends AnyFreeSpec {
                 val ds = FirstLayerDataStructure(SecondLayerDataStructure("invalid string"), 0)
                 val r = Validated.Invalid(NonEmptyChain(".v1.v is invalid", ".v2 is invalid"))
                 assert(v.validate(ds) == r)
+            }
+        }
+
+        "created from context should" - {
+            val c3: Int => String => Boolean = fv => sv => !Try(sv.toInt).toOption.contains(fv)
+            val m1: BasicMessageBuilder[Any] = c => s"${c.path} cannot be equal to value from context"
+            def vi2 = (c: FirstLayerDataStructure) => BasicValidator
+                .success[SecondLayerDataStructure]
+                .combinePR(_.v)(c3(c.v2), m1)
+
+            val v1 = BasicValidator.context[FirstLayerDataStructure](vi2(_).comapP(_.v1))
+            val v2 = BasicValidator.success[FirstLayerDataStructure].combinePC(_.v1)(vi2)
+            val v3 = BasicValidator.success[FirstLayerDataStructure].combineC(c => vi2(c).comapP(_.v1))
+
+            "return success result" in {
+                val ds = FirstLayerDataStructure(SecondLayerDataStructure("valid string"), 1)
+                val r = Validated.validNec(ds)
+                assert(v1.validate(ds) == r)
+                assert(v2.validate(ds) == r)
+                assert(v3.validate(ds) == r)
+            }
+            "return fail result" in {
+                val ds = FirstLayerDataStructure(SecondLayerDataStructure("1"), 1)
+                val r = Validated.Invalid(NonEmptyChain(".v1.v cannot be equal to value from context"))
+                assert(v1.validate(ds) == r)
+                assert(v2.validate(ds) == r)
+                assert(v3.validate(ds) == r)
             }
         }
 

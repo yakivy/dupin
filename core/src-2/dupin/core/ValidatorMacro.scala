@@ -2,8 +2,10 @@ package dupin.core
 
 import cats.Functor
 import dupin.core.Validator.PartiallyAppliedCombineP
+import dupin.core.Validator.PartiallyAppliedCombinePC
 import dupin.core.Validator.PartiallyAppliedCombinePL
 import dupin.core.Validator.PartiallyAppliedCombinePR
+import dupin.core.Validator.PartiallyAppliedCombinePRF
 import scala.reflect.macros.blackbox
 
 object ValidatorMacro {
@@ -12,7 +14,7 @@ object ValidatorMacro {
     ): c.Expr[Validator[F, E, AA]] = {
         import c.universe._
         c.Expr(q"""${c.prefix}.comapPE(
-            _root_.dupin.core.Root.::(_root_.dupin.core.FieldPart(${getFieldName(c)(f).decodedName.toString})), $f
+            _root_.dupin.Path(_root_.dupin.core.FieldPart(${getFieldName(c)(f).decodedName.toString})), $f
         )""")
     }
 
@@ -20,8 +22,17 @@ object ValidatorMacro {
         c: blackbox.Context)(f: c.Expr[A => AA]
     ): c.Expr[PartiallyAppliedCombineP[F, E, A, AA]] = {
         import c.universe._
-        c.Expr(q"""_root_.dupin.core.Validator.PartiallyAppliedCombineP(
-            ${c.prefix}, _root_.dupin.core.FieldPart(${getFieldName(c)(f).decodedName.toString}), $f
+        c.Expr(q"""_root_.dupin.Validator.PartiallyAppliedCombineP(
+            ${c.prefix}, _root_.dupin.Path(_root_.dupin.core.FieldPart(${getFieldName(c)(f).decodedName.toString})), $f
+        )""")
+    }
+
+    def combinePCImpl[F[_], E, A, AA](
+        c: blackbox.Context)(f: c.Expr[A => AA]
+    ): c.Expr[PartiallyAppliedCombinePC[F, E, A, AA]] = {
+        import c.universe._
+        c.Expr(q"""_root_.dupin.Validator.PartiallyAppliedCombinePC(
+            ${c.prefix}, _root_.dupin.Path(_root_.dupin.core.FieldPart(${getFieldName(c)(f).decodedName.toString})), $f
         )""")
     }
 
@@ -29,8 +40,8 @@ object ValidatorMacro {
         c: blackbox.Context)(f: c.Expr[A => G[AA]]
     ): c.Expr[PartiallyAppliedCombinePL[F, E, A, G, AA]] = {
         import c.universe._
-        c.Expr(q"""_root_.dupin.core.Validator.PartiallyAppliedCombinePL(
-            ${c.prefix}, _root_.dupin.core.FieldPart(${getFieldName(c)(f).decodedName.toString}), $f
+        c.Expr(q"""_root_.dupin.Validator.PartiallyAppliedCombinePL(
+            ${c.prefix}, _root_.dupin.Path(_root_.dupin.core.FieldPart(${getFieldName(c)(f).decodedName.toString})), $f
         )""")
     }
 
@@ -38,8 +49,17 @@ object ValidatorMacro {
         c: blackbox.Context)(f: c.Expr[A => AA]
     ): c.Expr[PartiallyAppliedCombinePR[F, E, A, AA]] = {
         import c.universe._
-        c.Expr(q"""_root_.dupin.core.Validator.PartiallyAppliedCombinePR(
-            ${c.prefix}, _root_.dupin.core.FieldPart(${getFieldName(c)(f).decodedName.toString}), $f
+        c.Expr(q"""_root_.dupin.Validator.PartiallyAppliedCombinePR(
+            ${c.prefix}, _root_.dupin.Path(_root_.dupin.core.FieldPart(${getFieldName(c)(f).decodedName.toString})), $f
+        )""")
+    }
+
+    def combinePRFImpl[F[_], E, A, AA](
+        c: blackbox.Context)(f: c.Expr[A => AA]
+    ): c.Expr[PartiallyAppliedCombinePRF[F, E, A, AA]] = {
+        import c.universe._
+        c.Expr(q"""_root_.dupin.Validator.PartiallyAppliedCombinePRF(
+            ${c.prefix}, _root_.dupin.Path(_root_.dupin.core.FieldPart(${getFieldName(c)(f).decodedName.toString})), $f
         )""")
     }
 
@@ -48,7 +68,7 @@ object ValidatorMacro {
     ): c.Expr[Validator[F, E, A]] = {
         import c.universe._
         c.Expr(q"""${c.prefix}.combinePE(
-            _root_.dupin.core.Root.::(_root_.dupin.core.FieldPart(${getFieldName(c)(f).decodedName.toString})), $f)($V
+            _root_.dupin.Path(_root_.dupin.core.FieldPart(${getFieldName(c)(f).decodedName.toString})), $f)($V
         )""")
     }
 
@@ -69,9 +89,9 @@ object ValidatorMacro {
         import c.universe._
         c.Expr(AT.tpe.members.toList.sortBy(_.fullName).collect {
             case m: MethodSymbol if m.isParamAccessor => m
-        }.foldLeft(q"""_root_.dupin.core.Validator[$FT, $ET].success[$AT]""") { case (t, m) => q"""
+        }.foldLeft(q"""_root_.dupin.Validator[$FT, $ET].success[$AT]""") { case (t, m) => q"""
             $t.combinePE(
-                _root_.dupin.core.Root.::(_root_.dupin.core.FieldPart(${m.name.toString})),
+                _root_.dupin.Path(_root_.dupin.core.FieldPart(${m.name.toString})),
                 _.${m.name})(
                 implicitly[_root_.dupin.core.Validator[$FT, $ET, ${m.returnType}]]
             )

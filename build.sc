@@ -5,23 +5,21 @@ import mill.scalanativelib._
 import mill.scalalib.publish._
 
 object versions {
-    val publish = "0.3.1"
+    val publish = "0.4.1"
 
-    val scala212 = "2.12.15"
-    val scala213 = "2.13.7"
-    val scala3 = "3.0.2"
-    val scalaJs = "1.5.1"
-    val scalaNative = "0.4.2"
-    val scalatest = "3.2.9"
-    val cats = "2.6.1"
+    val scala212 = "2.12.16"
+    val scala213 = "2.13.8"
+    val scala3 = "3.1.3"
+    val scalaJs = "1.10.1"
+    val scalaNative = "0.4.5"
+    val scalatest = "3.2.12"
+    val cats = "2.8.0"
 
-    val cross2 = Seq(scala212, scala213)
-    val cross3 = Seq(scala3)
-    val cross = cross2 ++ cross3
+    val cross = Seq(scala212, scala213, scala3)
 }
 
 object core extends Module {
-    trait CommonCoreModule extends PublishModule with CrossScalaModule {
+    trait CommonCoreModule extends PublishModule with CrossScalaModule with CrossScalaVersionRanges {
         override def artifactName = "dupin-core"
         override def publishVersion = versions.publish
         override def pomSettings = PomSettings(
@@ -58,7 +56,7 @@ object core extends Module {
         object test extends CommonTestModule with Tests
     }
 
-    object native extends Cross[NativeModule](versions.cross2: _*)
+    object native extends Cross[NativeModule](versions.cross: _*)
     class NativeModule(val crossScalaVersion: String) extends CommonCoreModule with ScalaNativeModule {
         def scalaNativeVersion = versions.scalaNative
         object test extends CommonTestModule with Tests

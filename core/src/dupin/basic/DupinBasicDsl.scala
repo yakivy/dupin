@@ -3,7 +3,7 @@ package dupin.basic
 import cats.Id
 import dupin.DupinCoreDsl
 
-trait DupinBasicDsl extends DupinCoreDsl with DupinBasicDslBinCompat {
+trait DupinBasicDsl extends DupinCoreDsl {
     type BasicValidator[A] = Validator[Id, String, A]
     val BasicValidator = Validator[Id, String]
 

@@ -3,12 +3,12 @@ package dupin.readme
 import cats.data.NonEmptyChain
 import cats.data.Validated
 import cats.data.ValidatedNec
+import dupin._
 import dupin.readme.ReadmeDomainFixture._
 import org.scalatest.freespec.AsyncFreeSpec
 import scala.concurrent.Future
 
 trait KindCustomizationDslFixture extends KindCustomizationDomainFixture {
-    import dupin._
     import scala.concurrent.Future
 
     type FutureValidator[A] = Validator[Future, String, A]
@@ -21,13 +21,13 @@ trait KindCustomizationValidatorFixture extends AsyncFreeSpec with KindCustomiza
 
     val nameService = new NameService
 
-    implicit val nameValidator: FutureValidator[Name] = FutureValidator.root[Name](
+    implicit val nameValidator: FutureValidator[Name] = FutureValidator.rootF[Name](
         n => nameService.contains(n.value), c => s"${c.path} should be non empty"
     )
 
     implicit val memberValidator: FutureValidator[Member] = FutureValidator.success[Member]
         .combinePI(_.name)
-        .combinePR(_.age)(a => Future.successful(a > 18 && a < 40), c => s"${c.path} should be between 18 and 40")
+        .combinePR(_.age)(a => a > 18 && a < 40, c => s"${c.path} should be between 18 and 40")
 }
 
 class KindCustomizationSpec extends KindCustomizationValidatorFixture {

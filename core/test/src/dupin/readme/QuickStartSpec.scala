@@ -16,7 +16,9 @@ trait QuickStartValidatorFixture {
     //idiomatic validator for complex type
     implicit val memberValidator: BasicValidator[Member] =
         nameValidator.comapP[Member](_.name) combine
-        BasicValidator.root[Int](a => a > 18 && a < 40, c => s"${c.path} should be between 18 and 40").comapP[Member](_.age)
+        BasicValidator.root[Int](
+            a => a > 18 && a < 40, c => s"${c.path} should be between 18 and 40"
+        ).comapP[Member](_.age)
 
     //same validator but with combination helpers for better type resolving
     val alternativeMemberValidator: BasicValidator[Member] = BasicValidator.success[Member]

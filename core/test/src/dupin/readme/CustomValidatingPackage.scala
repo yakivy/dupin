@@ -13,7 +13,7 @@ class CustomValidatingPackage extends AsyncFreeSpec with KindCustomizationDomain
 
             val nameService = new NameService
 
-            implicit val nameValidator: CustomValidator[Name] = CustomValidator.root[Name](
+            implicit val nameValidator: CustomValidator[Name] = CustomValidator.rootF[Name](
                 n => nameService.contains(n.value), c => I18nMessage(
                     s"${c.path} should be non empty",
                     "validator.name.empty",
