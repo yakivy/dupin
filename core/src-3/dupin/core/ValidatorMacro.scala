@@ -4,15 +4,25 @@ import cats.Applicative
 import scala.quoted.*
 
 object ValidatorMacro {
-    def runWithFieldName[A : Type](using q: Quotes)(run: Expr[String => A], f: Expr[_ => _]): Expr[A] =
-        '{${run}(${getFieldName(f)})}
+    def runWithFieldPath[A : Type](using q: Quotes)(run: Expr[Path => A], f: Expr[_ => _]): Expr[A] =
+        '{${run}(${getFieldPath(f)})}
 
-    def getFieldName(using q: Quotes)(f: Expr[_ => _]): Expr[String] = {
+    def getFieldPath(using q: Quotes)(f: Expr[_ => _]): Expr[Path] = {
         import q.reflect.*
-        (f.asTerm match {
-            case Inlined(_, _, Lambda(_, Select(_, name))) => Literal(StringConstant(name))
-            case _ => report.throwError(s"Unable to retrieve field name from function ${f.show}")
-        }).asExprOf[String]
+        def abort = report.throwError(s"Unable to retrieve field name from function ${f.show}")
+        def rec(argName: String, selects: Tree, acc: Expr[Path]): Expr[Path] = selects match {
+            case Ident(identName) if identName == argName => acc
+            case Select(qualifier, name) => '{
+                ${rec(argName, qualifier, acc).asExprOf[Path]}
+                    .append(FieldPart(${Literal(StringConstant(name)).asExprOf[String]}))
+            }
+            case _ => abort
+        }
+        f.asTerm match {
+            case Inlined(_, _, Lambda(List(ValDef(argName, _, _)), selects)) =>
+                rec(argName, selects, '{ Path.empty })
+            case _ => abort
+        }
     }
 
     def derive[F[_] : Type, E : Type, A : Type](

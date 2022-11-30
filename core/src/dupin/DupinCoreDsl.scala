@@ -5,6 +5,7 @@ trait DupinCoreDsl {
     val Validator = core.Validator
 
     type Context[+A] = core.Context[A]
+    val Context = core.Context
     type MessageBuilder[-A, +E] = Context[A] => E
     type PathPart = core.PathPart
     type Path = core.Path

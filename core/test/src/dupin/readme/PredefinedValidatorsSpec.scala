@@ -17,8 +17,9 @@ class PredefinedValidatorsSpec extends AnyFreeSpec with PredefinedValidatorsFixt
             import cats._
             import dupin.basic.all._
 
-            implicit val memberValidator: BasicValidator[Member] = BasicValidator.success[Member]
-                .combineP(_.age)(min(18) && max(40))
+            implicit val memberValidator: BasicValidator[Member] = BasicValidator
+                .success[Member]
+                .combineP(_.age)(min(18) && max(40).failureAs(_ => "updated validation message"))
 
             val invalidMember = Member(Name("Ada"), 0)
             val result = invalidMember.validate

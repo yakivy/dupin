@@ -12,20 +12,33 @@ import scala.util.Try
 
 class ValidatorSpec extends AsyncFreeSpec {
     "Type validator" - {
+        "when created from simple type" - {
+            "should be able to handle error" in {
+                val v1 = BasicValidator.failure[Int](_ => "failure")
+                val v2 = v1.handleErrorWith(_ => BasicValidator.success[Int])
+                assert(v1.validate(1) == Validated.invalidNec("failure"))
+                assert(v2.validate(1) == Validated.Valid(1))
+            }
+            "should be able to map error" in {
+                val v1 = BasicValidator.failure[Int](_ => "failure")
+                val v2 = v1.mapError(_ => "custom failure")
+                assert(v1.validate(1) == Validated.invalidNec("failure"))
+                assert(v2.validate(1) == Validated.invalidNec("custom failure"))
+            }
+        }
         "when created from list" - {
             "should return fail result" in {
                 val v1 = BasicValidator.failure[Int](c => s"${c.path} value `${c.value}` is wrong")
                 val v2 = v1.comapToP[List]
 
+                assert(v1.validate(1) == Validated.invalidNec(". value `1` is wrong"))
                 assert(v2.validate(List(1, 2, 3)) == Validated.invalid(NonEmptyChain(
                     ".[0] value `1` is wrong",
                     ".[1] value `2` is wrong",
                     ".[2] value `3` is wrong",
                 )))
             }
-        }
-        "when created from long list" - {
-            "should return success result" in {
+            "should not throw stack overflow exception" in {
                 val v1 = BasicValidator.success[Int]
                 val v2 = v1.comapToP[List]
 
@@ -177,13 +190,14 @@ class ValidatorSpec extends AsyncFreeSpec {
     "Two field validator when" - {
         case class TwoFieldDataStructure(v1: String, v2: Int)
         val m: BasicMessageBuilder[Any] = c => s"${c.path} is invalid"
+        val c1: String => Boolean = _ != "invalid string"
+        val c2: Int => Boolean = _ != 0
 
         "created from root should" - {
-
-            val c1: TwoFieldDataStructure => Boolean = _.v1 != "invalid string"
-            val c2: TwoFieldDataStructure => Boolean = _.v2 != 0
-            val v1 = BasicValidator.root(c1, m) combine BasicValidator.root(c2, m)
-            val v2 = BasicValidator.success[TwoFieldDataStructure].combineR(c1, m).combineR(c2, m)
+            val rc1: TwoFieldDataStructure => Boolean = c1.compose[TwoFieldDataStructure](_.v1)
+            val rc2: TwoFieldDataStructure => Boolean = c2.compose[TwoFieldDataStructure](_.v2)
+            val v1 = BasicValidator.root(rc1, m) combine BasicValidator.root(rc2, m)
+            val v2 = BasicValidator.success[TwoFieldDataStructure].combineR(rc1, m).combineR(rc2, m)
 
             "return success result with two successful checks" in {
                 val ds = TwoFieldDataStructure("valid string", 1)
@@ -215,8 +229,6 @@ class ValidatorSpec extends AsyncFreeSpec {
         }
 
         "created from field path should" - {
-            val c1: String => Boolean = _ != "invalid string"
-            val c2: Int => Boolean = _ != 0
             val v1 = BasicValidator.success[TwoFieldDataStructure]
                 .combinePR(_.v1)(c1, m)
                 .combinePR(_.v2)(c2, m)
@@ -267,6 +279,35 @@ class ValidatorSpec extends AsyncFreeSpec {
                 assert(v4.validate(ds) == r)
             }
         }
+
+        "created in two stages should" - {
+            val v = BasicValidator.root(c1, m).comapP[TwoFieldDataStructure](_.v1) andThen
+                BasicValidator.root(c2, m).comapP[TwoFieldDataStructure](_.v2)
+
+            "return success result with two successful checks" in {
+                val ds = TwoFieldDataStructure("valid string", 1)
+                val r = Validated.validNec(ds)
+                assert(v.validate(ds) == r)
+            }
+
+            "return fail result with first fail check" in {
+                val ds = TwoFieldDataStructure("invalid string", 1)
+                val r = Validated.invalidNec(".v1 is invalid")
+                assert(v.validate(ds) == r)
+            }
+
+            "return fail result with second fail check" in {
+                val ds = TwoFieldDataStructure("valid string", 0)
+                val r = Validated.invalidNec(".v2 is invalid")
+                assert(v.validate(ds) == r)
+            }
+
+            "return only first fail result with two fail checks" in {
+                val ds = TwoFieldDataStructure("invalid string", 0)
+                val r = Validated.invalidNec(".v1 is invalid")
+                assert(v.validate(ds) == r)
+            }
+        }
     }
 
     "Two layer validator when" - {
@@ -281,32 +322,39 @@ class ValidatorSpec extends AsyncFreeSpec {
             .combinePR(_.v)(c1, m)
 
         "created from field path should" - {
-            val v = BasicValidator.success[FirstLayerDataStructure]
+            val v1 = BasicValidator.success[FirstLayerDataStructure]
                 .combinePI(_.v1)
+                .combinePR(_.v2)(c2, m)
+            val v2 = BasicValidator.success[FirstLayerDataStructure]
+                .combinePR(_.v1.v)(c1, m)
                 .combinePR(_.v2)(c2, m)
 
             "return success result with two successful checks" in {
                 val ds = FirstLayerDataStructure(SecondLayerDataStructure("valid string"), 1)
                 val r = Validated.validNec(ds)
-                assert(v.validate(ds) == r)
+                assert(v1.validate(ds) == r)
+                assert(v2.validate(ds) == r)
             }
 
             "return fail result with first fail check" in {
                 val ds = FirstLayerDataStructure(SecondLayerDataStructure("invalid string"), 1)
                 val r = Validated.invalidNec(".v1.v is invalid")
-                assert(v.validate(ds) == r)
+                assert(v1.validate(ds) == r)
+                assert(v2.validate(ds) == r)
             }
 
             "return fail result with second fail check" in {
                 val ds = FirstLayerDataStructure(SecondLayerDataStructure("valid string"), 0)
                 val r = Validated.invalidNec(".v2 is invalid")
-                assert(v.validate(ds) == r)
+                assert(v1.validate(ds) == r)
+                assert(v2.validate(ds) == r)
             }
 
             "return fail result with two fail checks" in {
                 val ds = FirstLayerDataStructure(SecondLayerDataStructure("invalid string"), 0)
                 val r = Validated.Invalid(NonEmptyChain(".v1.v is invalid", ".v2 is invalid"))
-                assert(v.validate(ds) == r)
+                assert(v1.validate(ds) == r)
+                assert(v2.validate(ds) == r)
             }
         }
 

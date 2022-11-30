@@ -24,39 +24,39 @@ trait ValidatorBinCompat[F[_], E, A] { this: Validator[F, E, A] =>
      * }}}
      */
     inline def comapP[AA](inline f: AA => A)(implicit F: Functor[F]): Validator[F, E, AA] = ${
-        ValidatorMacro.runWithFieldName('{name => this.comapPE(Path(FieldPart(name)), f)}, 'f)
+        ValidatorMacro.runWithFieldPath('{path => this.comapPE(path, f)}, 'f)
     }
 
     /**
      * Combines with field validator using macros generated path.
      */
     inline def combineP[AA](inline f: A => AA): PartiallyAppliedCombineP[F, E, A, AA] = ${
-        ValidatorMacro.runWithFieldName('{name => PartiallyAppliedCombineP(this, Path(FieldPart(name)), f)}, 'f)
+        ValidatorMacro.runWithFieldPath('{path => PartiallyAppliedCombineP(this, path, f)}, 'f)
     }
 
     /**
      * Combines with field validator from context using macros generated path.
      */
     inline def combinePC[AA](inline f: A => AA): PartiallyAppliedCombinePC[F, E, A, AA] = ${
-        ValidatorMacro.runWithFieldName('{name => PartiallyAppliedCombinePC(this, Path(FieldPart(name)), f)}, 'f)
+        ValidatorMacro.runWithFieldPath('{path => PartiallyAppliedCombinePC(this, path, f)}, 'f)
     }
 
     /**
      * Combines with field validator passed by separate arguments using macros generated path.
      */
     inline def combinePR[AA](inline f: A => AA): PartiallyAppliedCombinePR[F, E, A, AA] = ${
-        ValidatorMacro.runWithFieldName('{name => PartiallyAppliedCombinePR(this, Path(FieldPart(name)), f)}, 'f)
+        ValidatorMacro.runWithFieldPath('{path => PartiallyAppliedCombinePR(this, path, f)}, 'f)
     }
 
     inline def combinePRF[AA](inline f: A => AA): PartiallyAppliedCombinePRF[F, E, A, AA] = ${
-        ValidatorMacro.runWithFieldName('{name => PartiallyAppliedCombinePRF(this, Path(FieldPart(name)), f)}, 'f)
+        ValidatorMacro.runWithFieldPath('{path => PartiallyAppliedCombinePRF(this, path, f)}, 'f)
     }
 
     /**
      * Combines with lifted field validator using macros generated path.
      */
     inline def combinePL[AF[_], AA](inline f: A => AF[AA]): PartiallyAppliedCombinePL[F, E, A, AF, AA] = ${
-        ValidatorMacro.runWithFieldName('{name => PartiallyAppliedCombinePL(this, Path(FieldPart(name)), f)}, 'f)
+        ValidatorMacro.runWithFieldPath('{path => PartiallyAppliedCombinePL(this, path, f)}, 'f)
     }
 
     /**
@@ -66,6 +66,6 @@ trait ValidatorBinCompat[F[_], E, A] { this: Validator[F, E, A] =>
         inline f: A => AA)(
         implicit V: Validator[F, E, AA], A: Applicative[F]
     ): Validator[F, E, A] = ${
-        ValidatorMacro.runWithFieldName('{name => this.combinePE(Path(FieldPart(name)), f)(V)}, 'f)
+        ValidatorMacro.runWithFieldPath('{path => this.combinePE(path, f)(V)}, 'f)
     }
 }

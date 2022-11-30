@@ -8,7 +8,7 @@
 Dupin is a minimal, idiomatic, customizable validation Scala library.
 
 ### Table of contents
-1. [Motivation](#motivation)
+1. [Introduction](#introduction)
 2. [Quick start](#quick-start)
 3. [Predefined validators](#predefined-validators)
 4. [Message customization](#message-customization)
@@ -16,12 +16,15 @@ Dupin is a minimal, idiomatic, customizable validation Scala library.
 6. [Custom validating package](#custom-validating-package)
 7. [Changelog](#changelog)
 
-### Motivation
+### Introduction
+
+Dupin is built around one type class `Validator[F[_], E, A]`, for a better understanding it can be thought of as a `A => F[ValidatedNec[E, A]]` function. Everything that you can do with this function, you can also do with a `Validator`, plus few more methods for validator creation and composition.
 
 You may find Dupin useful if you...
+- want a simple and transparent validation approach
 - need to return something richer than `String` as validation message
-- want to use effectful logic inside validator (`Future`, `IO`, etc...)
-- use [cats](https://typelevel.org/cats/) and like their API style
+- use effectful logic inside validator (`Future`, `IO`, etc...)
+- have [cats](https://typelevel.org/cats/) dependency and like their API style
 - need Scala 3, Scala JS or Scala Native support
 
 ### Quick start
@@ -29,7 +32,7 @@ Add cats and dupin dependencies to the build file, let's assume you are using sb
 ```scala
 libraryDependencies += Seq(
     "org.typelevel" %% "cats-core" % "2.8.0",
-    "com.github.yakivy" %% "dupin-core" % "0.4.1",
+    "com.github.yakivy" %% "dupin-core" % "0.5.0",
 )
 ```
 Describe the domain:
@@ -51,7 +54,8 @@ implicit val nameValidator: BasicValidator[Name] = BasicValidator
 implicit val memberValidator: BasicValidator[Member] =
     nameValidator.comapP[Member](_.name) combine
     BasicValidator.root[Int](
-        a => a > 18 && a < 40, c => s"${c.path} should be between 18 and 40"
+        a => a > 18 && a < 40,
+        c => s"${c.path} should be between 18 and 40"
     ).comapP[Member](_.age)
 
 //same validator but with combination helpers for better type resolving
@@ -64,6 +68,10 @@ val alternativeMemberValidator: BasicValidator[Member] = BasicValidator
 implicit val teamValidator: BasicValidator[Team] = BasicValidator
     .derive[Team]
     .combineR(_.members.size <= 8, _ => "team should be fed with two pizzas!")
+
+//two stage validator
+val failingTeamValidator: BasicValidator[Team] = teamValidator
+    .andThen(BasicValidator.failure[Team](_ => "expected validation error"))
 ```
 Validate them all:
 ```scala
@@ -83,34 +91,41 @@ val invalidTeam = Team(
     Member(Name(""), 0) :: (1 to 10).map(_ => Member(Name("Valid name"), 20)).toList
 )
 
-val valid = validTeam.isValid
-val result = invalidTeam.validate
-
-assert(valid)
-assert(result == Validated.invalid(NonEmptyChain(
+assert(validTeam.isValid)
+assert(invalidTeam.validate == Validated.invalid(NonEmptyChain(
     ".members.[0].name should be non empty",
     ".members.[0].age should be between 18 and 40",
     ".name should be non empty",
-    "team should be fed with two pizzas!"
+    "team should be fed with two pizzas!",
+)))
+assert(failingTeamValidator.validate(validTeam) == Validated.invalid(NonEmptyChain(
+    "expected validation error",
+)))
+assert(failingTeamValidator.validate(invalidTeam) == Validated.invalid(NonEmptyChain(
+    ".members.[0].name should be non empty",
+    ".members.[0].age should be between 18 and 40",
+    ".name should be non empty",
+    "team should be fed with two pizzas!",
 )))
 ```
 
 ### Predefined validators
 
-The more validators you have, the more logic can be reused without writing validators from the scratch. Let's define common validators for minimum and maximum `Int` value:
+It also could be useful to extract and reuse validators for common types. Let's define validators for minimum and maximum `Int` value:
 ```scala
 import dupin.basic.all._
 
 def min(value: Int) = BasicValidator.root[Int](_ > value, c => s"${c.path} should be greater than $value")
 def max(value: Int) = BasicValidator.root[Int](_ < value, c => s"${c.path} should be less than $value")
 ``` 
-And since validators can be combined, you can create validators from other validators:
+And since validators can be combined, you can use them to create more complex validators:
 ```scala
 import cats._
 import dupin.basic.all._
 
-implicit val memberValidator: BasicValidator[Member] = BasicValidator.success[Member]
-    .combineP(_.age)(min(18) && max(40))
+implicit val memberValidator: BasicValidator[Member] = BasicValidator
+    .success[Member]
+    .combineP(_.age)(min(18) && max(40).failureAs(_ => "updated validation message"))
 
 val invalidMember = Member(Name("Ada"), 0)
 val result = invalidMember.validate
@@ -128,7 +143,7 @@ case class I18nMessage(
     params: List[String]
 )
 ```
-As `BasicValidator[A]` is just a type alias for `Validator[Id, String, A]`, you can define own validator type with builder:
+`BasicValidator[A]` is simply a type alias for `Validator[Id, String, A]`, so you can define own validator type and partially applied builder:
 
 ```scala
 import dupin._
@@ -141,14 +156,16 @@ And start creating validators with custom messages:
 import cats._
 
 implicit val nameValidator: I18nValidator[Name] = I18nValidator.root[Name](
-    _.value.nonEmpty, c => I18nMessage(
+    _.value.nonEmpty,
+    c => I18nMessage(
         s"${c.path} should be non empty",
         "validator.name.empty",
         List(c.path.toString())
     )
 )
 
-implicit val memberValidator: I18nValidator[Member] = I18nValidator.success[Member]
+implicit val memberValidator: I18nValidator[Member] = I18nValidator
+    .success[Member]
     .combinePI(_.name)
     .combinePR(_.age)(a => a > 18 && a < 40, c => I18nMessage(
         s"${c.path} should be between 18 and 40",
@@ -179,7 +196,7 @@ assert(result == Validated.invalid(NonEmptyChain(
 
 ### Effectful validation
 
-For example you want to allow only using of limited list of names and they are stored in the database:
+For example, you want to allow only using of limited list of names and they are stored in the database:
 ```scala
 import scala.concurrent.Future
 
@@ -206,10 +223,12 @@ import scala.concurrent.Future
 val nameService = new NameService
 
 implicit val nameValidator: FutureValidator[Name] = FutureValidator.rootF[Name](
-    n => nameService.contains(n.value), c => s"${c.path} should be non empty"
+    n => nameService.contains(n.value),
+    c => s"${c.path} should be non empty"
 )
 
-implicit val memberValidator: FutureValidator[Member] = FutureValidator.success[Member]
+implicit val memberValidator: FutureValidator[Member] = FutureValidator
+    .success[Member]
     .combinePI(_.name)
     .combinePR(_.age)(a => a > 18 && a < 40, c => s"${c.path} should be between 18 and 40")
 ```
@@ -259,6 +278,10 @@ valid.map(assert(_))
 
 ### Changelog
 
+#### 0.5.0
+- simplify internal validator function
+- expose validator contravariant monoidal instance `ContravariantMonoidal[Validator[F, E, *]]`
+
 #### 0.4.1
 - update Scala Native and Scala JS versions
 
@@ -279,6 +302,6 @@ valid.map(assert(_))
 #### 0.2.0:
 - migrate to mill build tool
 - add Scala 3, Scala JS and Scala Native support
-- expose validator monoid instance `Monoid[Validator[F, E, A]]`
+- expose validator monoid instance `MonoidK[Validator[F, E, *]]`
 - rename `dupin.base` package to `dupin.basic`
 - various refactorings and cleanups

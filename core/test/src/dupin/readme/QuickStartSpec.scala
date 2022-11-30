@@ -21,13 +21,19 @@ trait QuickStartValidatorFixture {
         ).comapP[Member](_.age)
 
     //same validator but with combination helpers for better type resolving
-    val alternativeMemberValidator: BasicValidator[Member] = BasicValidator.success[Member]
+    val alternativeMemberValidator: BasicValidator[Member] = BasicValidator
+        .success[Member]
         .combineP(_.name)(nameValidator)
         .combinePR(_.age)(a => a > 18 && a < 40, c => s"${c.path} should be between 18 and 40")
 
     //derived validator
-    implicit val teamValidator: BasicValidator[Team] = BasicValidator.derive[Team]
+    implicit val teamValidator: BasicValidator[Team] = BasicValidator
+        .derive[Team]
         .combineR(_.members.size <= 8, _ => "team should be fed with two pizzas!")
+
+    //two stage validator
+    val failingTeamValidator: BasicValidator[Team] = teamValidator
+        .andThen(BasicValidator.failure[Team](_ => "expected validation error"))
 }
 
 class QuickStartSpec extends AnyFreeSpec with QuickStartValidatorFixture {
@@ -50,14 +56,21 @@ class QuickStartSpec extends AnyFreeSpec with QuickStartValidatorFixture {
             )
 
             val valid = validTeam.isValid
-            val result = invalidTeam.validate
-
             assert(valid)
-            assert(result == Validated.invalid(NonEmptyChain(
+            assert(invalidTeam.validate == Validated.invalid(NonEmptyChain(
                 ".members.[0].name should be non empty",
                 ".members.[0].age should be between 18 and 40",
                 ".name should be non empty",
-                "team should be fed with two pizzas!"
+                "team should be fed with two pizzas!",
+            )))
+            assert(failingTeamValidator.validate(validTeam) == Validated.invalid(NonEmptyChain(
+                "expected validation error",
+            )))
+            assert(failingTeamValidator.validate(invalidTeam) == Validated.invalid(NonEmptyChain(
+                ".members.[0].name should be non empty",
+                ".members.[0].age should be between 18 and 40",
+                ".name should be non empty",
+                "team should be fed with two pizzas!",
             )))
         }
     }
