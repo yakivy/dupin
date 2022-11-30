@@ -33,7 +33,7 @@ trait QuickStartValidatorFixture {
 
     //two stage validator
     val failingTeamValidator: BasicValidator[Team] = teamValidator
-        .andThen(BasicValidator.failure[Team](_ => "expected validation error"))
+        .andThen(BasicValidator.failure[Team](_ => "validation error after heavy computations"))
 }
 
 class QuickStartSpec extends AnyFreeSpec with QuickStartValidatorFixture {
@@ -64,7 +64,7 @@ class QuickStartSpec extends AnyFreeSpec with QuickStartValidatorFixture {
                 "team should be fed with two pizzas!",
             )))
             assert(failingTeamValidator.validate(validTeam) == Validated.invalid(NonEmptyChain(
-                "expected validation error",
+                "validation error after heavy computations",
             )))
             assert(failingTeamValidator.validate(invalidTeam) == Validated.invalid(NonEmptyChain(
                 ".members.[0].name should be non empty",

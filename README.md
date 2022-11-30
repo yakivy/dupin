@@ -18,7 +18,7 @@ Dupin is a minimal, idiomatic, customizable validation Scala library.
 
 ### Introduction
 
-Dupin is built around one type class `Validator[F[_], E, A]`, for a better understanding it can be thought of as a `A => F[ValidatedNec[E, A]]` function. Everything that you can do with this function, you can also do with a `Validator`, plus few more methods for validator creation and composition.
+Dupin is built around single type class `Validator[F[_], E, A]`, for a better understanding it can be thought of as a `A => F[ValidatedNec[E, A]]` function. Everything that you can do with this function, you can also do with a `Validator`, plus few more methods for validator creation and composition.
 
 You may find Dupin useful if you...
 - want a simple and transparent validation approach
@@ -31,7 +31,7 @@ You may find Dupin useful if you...
 Add cats and dupin dependencies to the build file, let's assume you are using sbt:
 ```scala
 libraryDependencies += Seq(
-    "org.typelevel" %% "cats-core" % "2.8.0",
+    "org.typelevel" %% "cats-core" % "2.9.0",
     "com.github.yakivy" %% "dupin-core" % "0.5.0",
 )
 ```
@@ -71,7 +71,7 @@ implicit val teamValidator: BasicValidator[Team] = BasicValidator
 
 //two stage validator
 val failingTeamValidator: BasicValidator[Team] = teamValidator
-    .andThen(BasicValidator.failure[Team](_ => "expected validation error"))
+    .andThen(BasicValidator.failure[Team](_ => "validation error after heavy computations"))
 ```
 Validate them all:
 ```scala
@@ -99,7 +99,7 @@ assert(invalidTeam.validate == Validated.invalid(NonEmptyChain(
     "team should be fed with two pizzas!",
 )))
 assert(failingTeamValidator.validate(validTeam) == Validated.invalid(NonEmptyChain(
-    "expected validation error",
+    "validation error after heavy computations",
 )))
 assert(failingTeamValidator.validate(invalidTeam) == Validated.invalid(NonEmptyChain(
     ".members.[0].name should be non empty",
@@ -111,7 +111,7 @@ assert(failingTeamValidator.validate(invalidTeam) == Validated.invalid(NonEmptyC
 
 ### Predefined validators
 
-It also could be useful to extract and reuse validators for common types. Let's define validators for minimum and maximum `Int` value:
+It also might be useful to extract and reuse validators for common types. Let's define validators for minimum and maximum `Int` value:
 ```scala
 import dupin.basic.all._
 
@@ -143,7 +143,7 @@ case class I18nMessage(
     params: List[String]
 )
 ```
-`BasicValidator[A]` is simply a type alias for `Validator[Id, String, A]`, so you can define own validator type and partially applied builder:
+`BasicValidator[A]` is simply a type alias for `Validator[Id, String, A]`, so you can define own validator type with partially applied builder:
 
 ```scala
 import dupin._
@@ -196,7 +196,7 @@ assert(result == Validated.invalid(NonEmptyChain(
 
 ### Effectful validation
 
-For example, you want to allow only using of limited list of names and they are stored in the database:
+For example, you want to allow only a limited list of names and it is stored in the database:
 ```scala
 import scala.concurrent.Future
 
@@ -207,7 +207,7 @@ class NameService {
         Future.successful(allowedNames(name))
 }
 ```
-So to be able to handle checks that return `Future[Boolean]`, you just need to define your own validator type with builder:
+So to be able to handle checks that return `Future[Boolean]`, you just need to define your own validator type with partially applied builder:
 ```scala
 import dupin._
 import scala.concurrent.Future
@@ -247,15 +247,14 @@ result.map(r => assert(r == Validated.invalid(NonEmptyChain(
 
 ### Custom validating package
 
-To avoid imports boilerplate and isolating all customizations you can define your own dupin package:
-
+To avoid imports boilerplate and isolating all customizations, you can define your own dupin package:
 ```scala
 package object custom extends DupinCoreDsl with DupinSyntax {
     type CustomValidator[A] = Validator[Future, I18nMessage, A]
     val CustomValidator = Validator[Future, I18nMessage]
 }
 ```
-Then you can start using your own validator type with single import:
+Then you can start using custom validator type with a single import:
 ```scala
 import cats.implicits._
 import dupin.custom._
