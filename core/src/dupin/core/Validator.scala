@@ -7,7 +7,7 @@ import dupin._
 
 /**
  * A type class that defines how to validate an instance of `A`.
- * For a better understanding can be thought of as a `A => F[ValidatedNec[E, A]]` function.
+ * Can be thought of as a `A => F[ValidatedNec[E, Unit]]` function.
  */
 final class Validator[F[_], E, A] private (
     val runF: Context[A] => F[ValidatedNec[E, Unit]]
@@ -61,19 +61,27 @@ final class Validator[F[_], E, A] private (
      * res1: cats.Id[cats.data.ValidatedNec[String,User]] = Invalid(Chain(.age is wrong))
      * }}}
      */
-    def comap[AA](f: AA => A)(implicit F: Functor[F]): Validator[F, E, AA] = comapPE(Path.empty, f)
+    def comap[AA](f: AA => A): Validator[F, E, AA] = comapPE(Path.empty, f)
 
     /**
-     * Contravariant map with explicit path prefix
+     * Contravariant map with explicit path prefix.
      */
-    def comapPE[AA](p: Path, f: AA => A)(implicit F: Functor[F]): Validator[F, E, AA] = Validator[F, E].runF(c =>
+    def comapPE[AA](p: Path, f: AA => A): Validator[F, E, AA] = Validator[F, E].runF(c =>
         runF(Context(c.path ++ p, f(c.value)))
     )
 
     /**
-     * Contravariant map that lifts `A` to higher-kinded type `G` including path changes
+     * Lifts validator to `G[_]` type using `Traverse` instance, adds index as path prefix.
      */
-    def comapToP[G[_]](implicit C: ValidatorComapToP[F, E, A, G]): Validator[F, E, G[A]] = C(this)
+    def liftToTraverseP[G[_]](implicit
+        F: Applicative[F],
+        G: Traverse[G],
+    ): Validator[F, E, G[A]] = Validator[F, E].runF[G[A]](c => c
+        .value
+        .mapWithIndex((a, i) => this.comapPE[G[A]](Path(IndexPart(i.toString)), _ => a).runF(c))
+        .sequence
+        .map(_.sequence[ValidatedNec[E, *], Unit].map(_ => ()))
+    )
 
     def product[B](
         v: Validator[F, E, B]
@@ -187,12 +195,16 @@ final class Validator[F[_], E, A] private (
     )(implicit
         F: Applicative[F]
     ): Validator[F, E, A] = combine(v.comapPE(p, f))
+
+    def toParser(implicit F: Functor[F]): IdParser[F, E, A] = Parser[F, E].runF(c =>
+        runF(c).map(_.fold[IorNec[E, A]](Ior.left, _ => Ior.right(c.value)))
+    )
 }
 
 object Validator extends ValidatorInstances {
     def apply[F[_], E]: PartiallyAppliedConstructor[F, E] = PartiallyAppliedConstructor[F, E]()
 
-    case class PartiallyAppliedConstructor[F[_], E]() extends PartiallyAppliedConstructorBinCompat[F, E] {
+    case class PartiallyAppliedConstructor[F[_], E]() extends PartiallyAppliedValidatorConstructorBinCompat[F, E] {
         def apply[A](implicit V: Validator[F, E, A]): Validator[F, E, A] = V
 
         def runF[A](runF: Context[A] => F[ValidatedNec[E, Unit]]): Validator[F, E, A] =
@@ -241,19 +253,6 @@ object Validator extends ValidatorInstances {
     case class PartiallyAppliedCombinePC[F[_], E, A, AA](iv: Validator[F, E, A], p: Path, f: A => AA) {
         def apply(vf: A => Validator[F, E, AA])(implicit A: Applicative[F]): Validator[F, E, A] =
             iv.combineC(a => vf(a).comapPE(p, f))
-    }
-
-    case class PartiallyAppliedCombinePL[F[_], E, A, G[_], AA](
-        iv: Validator[F, E, A],
-        p: Path,
-        f: A => G[AA]
-    ) {
-        def apply(
-            v: Validator[F, E, AA]
-        )(implicit
-            F: Applicative[F],
-            C: ValidatorComapToP[F, E, AA, G]
-        ): Validator[F, E, A] = iv.combinePE(p, f)(v.comapToP[G])
     }
 
     case class PartiallyAppliedCombinePRF[F[_], E, A, AA](iv: Validator[F, E, A], p: Path, f: A => AA) {

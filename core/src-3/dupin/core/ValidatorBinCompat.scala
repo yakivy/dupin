@@ -4,26 +4,16 @@ import cats.Applicative
 import cats.Functor
 import dupin.core.Validator.PartiallyAppliedCombineP
 import dupin.core.Validator.PartiallyAppliedCombinePC
-import dupin.core.Validator.PartiallyAppliedCombinePL
 import dupin.core.Validator.PartiallyAppliedCombinePR
 import dupin.core.Validator.PartiallyAppliedCombinePRF
 
 trait ValidatorBinCompat[F[_], E, A] { this: Validator[F, E, A] =>
     /**
-     * Contravariant map with macros generated path prefix. Example:
-     * {{{
-     * scala> case class User(age: Int)
-     * scala> val user = User(1)
-     * scala> val validator = dupin.basic.BasicValidator.failure[Int](c => s"${c.path} is wrong")
+     * Contravariant map with macros generated path prefix.
      *
-     * scala> validator.comap[User](_.age).validate(user)
-     * res0: cats.Id[cats.data.ValidatedNec[String,User]] = Invalid(Chain(. is wrong))
-     *
-     * scala> validator.comapP[User](_.age).validate(user)
-     * res1: cats.Id[cats.data.ValidatedNec[String,User]] = Invalid(Chain(.age is wrong))
-     * }}}
+     * @see [comap]
      */
-    inline def comapP[AA](inline f: AA => A)(implicit F: Functor[F]): Validator[F, E, AA] = ${
+    inline def comapP[AA](inline f: AA => A): Validator[F, E, AA] = ${
         ValidatorMacro.runWithFieldPath('{path => this.comapPE(path, f)}, 'f)
     }
 
@@ -50,13 +40,6 @@ trait ValidatorBinCompat[F[_], E, A] { this: Validator[F, E, A] =>
 
     inline def combinePRF[AA](inline f: A => AA): PartiallyAppliedCombinePRF[F, E, A, AA] = ${
         ValidatorMacro.runWithFieldPath('{path => PartiallyAppliedCombinePRF(this, path, f)}, 'f)
-    }
-
-    /**
-     * Combines with lifted field validator using macros generated path.
-     */
-    inline def combinePL[AF[_], AA](inline f: A => AF[AA]): PartiallyAppliedCombinePL[F, E, A, AF, AA] = ${
-        ValidatorMacro.runWithFieldPath('{path => PartiallyAppliedCombinePL(this, path, f)}, 'f)
     }
 
     /**

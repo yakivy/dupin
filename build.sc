@@ -5,7 +5,7 @@ import mill.scalanativelib._
 import mill.scalalib.publish._
 
 object versions {
-    val publish = "0.5.0"
+    val publish = "0.6.0"
 
     val scala212 = "2.12.17"
     val scala213 = "2.13.10"
@@ -31,7 +31,7 @@ object core extends Module {
         }
         override def scalacOptions = T {
             super.scalacOptions() ++ {
-                if (scalaVersion() == versions.scala3) Seq("-Ykind-projector")
+                if (scalaVersion() == versions.scala3) Seq("-Ykind-projector", "-Xcheck-macros", "-explain")
                 else Seq.empty[String]
             }
         }

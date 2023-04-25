@@ -1,8 +1,11 @@
 package dupin.core
 
 import cats.Applicative
+import scala.compiletime.*
+import scala.deriving.*
+import scala.quoted.*
 
-trait PartiallyAppliedConstructorBinCompat[F[_], E] {
+trait PartiallyAppliedValidatorConstructorBinCompat[F[_], E] {
     /**
      * Creates a root validator from implicit validators for all fields that have accessors
      * using macros generated path.

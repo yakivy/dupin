@@ -2,7 +2,7 @@ package dupin.core
 
 import scala.language.experimental.macros
 
-trait PartiallyAppliedConstructorBinCompat[F[_], E] {
+trait PartiallyAppliedValidatorConstructorBinCompat[F[_], E] {
     /**
      * Creates a root validator from implicit validators for all fields that have accessors
      * using macros generated path.

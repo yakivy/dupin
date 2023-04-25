@@ -14,7 +14,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.scalacheck.Checkers
 import org.typelevel.discipline.scalatest.WordSpecDiscipline
 
-class ValidatorLawSpec extends AnyWordSpec with WordSpecDiscipline with Checkers {
+class ValidatorLawSpec extends CustomLawSpec {
     implicit def isomorphismsForValidator[F[_], E](implicit
         V: Invariant[Validator[F, E, *]]
     ): Isomorphisms[Validator[F, E, *]] = Isomorphisms.invariant[Validator[F, E, *]]
@@ -23,9 +23,6 @@ class ValidatorLawSpec extends AnyWordSpec with WordSpecDiscipline with Checkers
         V: Arbitrary[A => F[ValidatedNec[E, Unit]]]
     ): Arbitrary[Validator[F, E, A]] =
         Arbitrary(V.arbitrary.map(f => Validator[F, E].runF(c => f(c.value))))
-
-    implicit def exhaustiveCheckForContext[A: ExhaustiveCheck]: ExhaustiveCheck[Context[A]] =
-        ExhaustiveCheck.instance(ExhaustiveCheck[A].allValues.map(Context(Path.empty, _)))
 
     implicit def validatorEq[F[_], E, A](implicit
         A: ExhaustiveCheck[Context[A]],

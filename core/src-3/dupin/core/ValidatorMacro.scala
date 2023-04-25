@@ -9,7 +9,7 @@ object ValidatorMacro {
 
     def getFieldPath(using q: Quotes)(f: Expr[_ => _]): Expr[Path] = {
         import q.reflect.*
-        def abort = report.throwError(s"Unable to retrieve field name from function ${f.show}")
+        def abort = report.throwError(s"Unable to retrieve field path from function ${f.show}")
         def rec(argName: String, selects: Tree, acc: Expr[Path]): Expr[Path] = selects match {
             case Ident(identName) if identName == argName => acc
             case Select(qualifier, name) => '{
@@ -25,24 +25,23 @@ object ValidatorMacro {
         }
     }
 
-    def derive[F[_] : Type, E : Type, A : Type](
-        using q: Quotes)(A: Expr[Applicative[F]]
-    ): Expr[Validator[F, E, A]] = {
+    def derive[F[_] : Type, E : Type, A : Type](using q: Quotes)(A: Expr[Applicative[F]]): Expr[Validator[F, E, A]] = {
         import q.reflect.*
-        TypeRepr.of[A].typeSymbol.memberFields.sortBy(_.fullName).map(_.tree).collect {
-            case m: ValDef => (m.symbol, m.rhs.map(_.tpe).getOrElse(m.tpt.tpe))
+        val atpe = TypeRepr.of[A]
+        atpe.typeSymbol.fieldMembers.sortBy(_.fullName).map(_.tree).collect {
+            case m: ValDef => m
         }.foldLeft('{Validator[F, E].success[A]($A)}) { case (t, m) =>
-            m._2.asType match { case '[tpe] =>
-                val resolvedValidator = Expr.summon[Validator[F, E, tpe]] match {
-                    case Some(arg) => arg
-                    case _ => report.throwError(s"Unable to resolve implicit validator for ${m._1.name} field")
+            atpe.memberType(m.symbol).asType match { case '[t] =>
+                val resolvedValidator = Implicits.search(TypeRepr.of[Validator[F, E, t]]) match {
+                    case iss: ImplicitSearchSuccess => iss.tree.asExpr.asInstanceOf[Expr[Validator[F, E, t]]]
+                    case isf: ImplicitSearchFailure => report.errorAndAbort(isf.explanation)
                 }
-                '{$t.combinePE(
-                    Path(FieldPart(${Literal(StringConstant(m._1.name)).asExprOf[String]})),
-                    a => ${Select('a.asTerm, m._1).asExprOf[tpe]})(
-                    $resolvedValidator)(
-                    $A
-                )}
+                '{
+                    $t.combinePE(
+                        Path(FieldPart(${Literal(StringConstant(m.symbol.name)).asExprOf[String]})),
+                        a => ${Select('a.asTerm, m.symbol).asExprOf[t]}
+                    )($resolvedValidator)($A)
+                }
             }
         }
     }

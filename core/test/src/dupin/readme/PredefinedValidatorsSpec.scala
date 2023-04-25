@@ -1,7 +1,7 @@
 package dupin.readme
 
 import cats.data.Validated
-import dupin.readme.ReadmeDomainFixture._
+import dupin.readme.ReadmeDomainValidatorFixture._
 import org.scalatest.freespec.AnyFreeSpec
 
 trait PredefinedValidatorsFixture {

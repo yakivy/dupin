@@ -1,7 +1,7 @@
 package dupin.readme
 
 import dupin.readme.MessageCustomizationDomainFixture._
-import dupin.readme.ReadmeDomainFixture._
+import dupin.readme.ReadmeDomainValidatorFixture._
 import org.scalatest.freespec.AsyncFreeSpec
 import scala.concurrent.Future
 
@@ -14,7 +14,8 @@ class CustomValidatingPackage extends AsyncFreeSpec with KindCustomizationDomain
             val nameService = new NameService
 
             implicit val nameValidator: CustomValidator[Name] = CustomValidator.rootF[Name](
-                n => nameService.contains(n.value), c => I18nMessage(
+                n => nameService.contains(n.value),
+                c => I18nMessage(
                     s"${c.path} should be non empty",
                     "validator.name.empty",
                     List(c.path.toString())

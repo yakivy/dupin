@@ -3,7 +3,7 @@ package dupin.readme
 import cats.data.NonEmptyChain
 import cats.data.Validated
 import dupin.readme.MessageCustomizationDomainFixture._
-import dupin.readme.ReadmeDomainFixture._
+import dupin.readme.ReadmeDomainValidatorFixture._
 import org.scalatest.freespec.AnyFreeSpec
 
 trait MessageCustomizationDslFixture {

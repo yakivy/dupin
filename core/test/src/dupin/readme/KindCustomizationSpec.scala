@@ -4,7 +4,7 @@ import cats.data.NonEmptyChain
 import cats.data.Validated
 import cats.data.ValidatedNec
 import dupin._
-import dupin.readme.ReadmeDomainFixture._
+import dupin.readme.ReadmeDomainValidatorFixture._
 import org.scalatest.freespec.AsyncFreeSpec
 import scala.concurrent.Future
 

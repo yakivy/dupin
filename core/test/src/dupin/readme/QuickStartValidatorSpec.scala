@@ -3,7 +3,7 @@ package dupin.readme
 import cats.data.NonEmptyChain
 import cats.data.Validated
 import org.scalatest.freespec.AnyFreeSpec
-import dupin.readme.ReadmeDomainFixture._
+import dupin.readme.ReadmeDomainValidatorFixture._
 
 trait QuickStartValidatorFixture {
     import cats._
@@ -36,7 +36,7 @@ trait QuickStartValidatorFixture {
         .andThen(BasicValidator.failure[Team](_ => "validation error after heavy computations"))
 }
 
-class QuickStartSpec extends AnyFreeSpec with QuickStartValidatorFixture {
+class QuickStartValidatorSpec extends AnyFreeSpec with QuickStartValidatorFixture {
     "Readme validators should" - {
         "be correct" in {
             import dupin.basic.all._
